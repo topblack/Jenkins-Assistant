@@ -1,0 +1,28 @@
+{
+  "name": "jenkins-assistant",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/topblack/Jenkins-Assistant.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/topblack/Jenkins-Assistant/issues"
+  },
+  "homepage": "https://github.com/topblack/Jenkins-Assistant#readme",
+  "dependencies": {
+    "@types/node": "^7.0.22",
+    "body-parser": "^1.17.2",
+    "express": "^4.15.3",
+    "nestor": "^1.0.2",
+    "node-rest-client": "^3.1.0",
+    "require": "^2.4.20",
+    "typescript": "^2.3.3"
+  }
+}
