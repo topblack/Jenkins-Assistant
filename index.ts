@@ -161,7 +161,7 @@ class JenkinsAssistant {
         }
 
         for (let i = 0; i < matchedRules.length; i++) {
-            if (matchedRules[i].ruleType == RuleType.watchThenTrigger) {
+            if (matchedRules[i].ruleType == RuleType[RuleType.watchThenTrigger]) {
                 let rule: WatchThenTriggerRule = <WatchThenTriggerRule>matchedRules[i];
                 for (let j = 0; j < rule.triggerJobs.length; j++) {
                     let trigger: JobTrigger = rule.triggerJobs[j];
