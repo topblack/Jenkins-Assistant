@@ -6,7 +6,6 @@ const http = require('http');
 const rest = require('restler');
 
 const RULES_DIR = 'rules';
-const GITHUB_BROKER = 'http://shdev.scienceaccelerated.com:8081/consumers/chemjenkins';
 const BREAK_PERIOD = 1000;
 
 const enum RuleType {
@@ -82,7 +81,7 @@ class JenkinsAssistant {
     }
 
     private getUrlEvents = () => {
-        return GITHUB_BROKER + '/events/';
+        return process.env.GITHUB_BROKER_URL + '/events/';
     }
 
     private getUrlEvent = (id) => {
@@ -176,13 +175,11 @@ class JenkinsAssistant {
         for (let b = 0; b < rule.branchesToWatch.length; b++) {
             let rb = rule.branchesToWatch[b];
             for (let be = 0; be < rb.branches.excludes.length; be++) {
-                console.info(`Excluded? ${branchName} ${rb.branches.excludes[be]} `);
                 if (branchName == rb.branches.excludes[be]) {
                     return false;
                 }
             }
             for (let bi = 0; bi < rb.branches.includes.length; bi++) {
-                console.info(`Included? ${branchName} ${rb.branches.includes[bi]} `);
                 if (branchName == rb.branches.includes[bi]) {
                     return true;
                 }
@@ -256,6 +253,11 @@ class JenkinsAssistant {
 
 if (!process.env.JENKINS_URL) {
     console.error('Please tell me where is my boss Jenkins via environment variable JENKINS_URL.');
+    process.exit(-1);
+}
+
+if (!process.env.GITHUB_BROKER_URL) {
+    console.error('Please tell me where is my partner GitHub Broker via environment variable GITHUB_BROKER_URL.');
     process.exit(-1);
 }
 
