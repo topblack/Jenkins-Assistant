@@ -1,6 +1,6 @@
 {
     "name": "ccaap-linux",
-    "ruleType": "watchThenTigger",
+    "ruleType": "watchThenTrigger",
     "branchesToWatch": [
         {
             "repository": "topblack/topblack.github.io",
