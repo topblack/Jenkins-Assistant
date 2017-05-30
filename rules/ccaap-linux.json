@@ -3,9 +3,9 @@
     "ruleType": "watchThenTrigger",
     "branchesToWatch": [
         {
-            "repository": "topblack/topblack.github.io",
+            "repository": "PerkinElmer/ChemDraw-CommonCS",
             "branches": {
-                "includes": ["refs/heads/master"],
+                "includes": ["refs/heads/develop"],
                 "excludes": []
             }
         }
