@@ -150,7 +150,11 @@ class JenkinsAssistant {
         rest.del(this.getUrlEvent(this.eventIds[0])).on('success', this.handleEventDeleted)
     }
 
+    /**
+     * Handles the push event.
+     */
     private handlePushEvent = (push: PushEvent) => {
+        // Check if the branch mentioned in the push event is covered in the defined rule.
         let matchedRules: Rule[] = [];
         for (let i = 0; i < this.rules.length; i++) {
             let rule = this.rules[i];
@@ -160,14 +164,18 @@ class JenkinsAssistant {
             }
         }
 
+        // Trigger the configured jobs.
         for (let i = 0; i < matchedRules.length; i++) {
             if (matchedRules[i].ruleType == RuleType[RuleType.watchThenTrigger]) {
                 let rule: WatchThenTriggerRule = <WatchThenTriggerRule>matchedRules[i];
                 for (let j = 0; j < rule.triggerJobs.length; j++) {
                     let trigger: JobTrigger = rule.triggerJobs[j];
-                    console.info(trigger.jobName);
+                    console.info(`Triggering job ${trigger.jobName}`);
+                    // TODO, support parameterized jobs.
                     this.nestor.buildJob(trigger.jobName, '', function (err, result) {
-                        console.error(err);
+                        if (err) {
+                            console.error(err);
+                        }
                     });
                 }
             }
