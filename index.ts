@@ -67,10 +67,6 @@ class JenkinsAssistant {
         this.nestor = new Nestor(process.env.JENKINS_URL);
     }
 
-    private getJenkinsUrl = () : string => {
-        return ``;
-    }
-
     private listenToAdmin() {
         let app = express();
         app.use(bodyParser.json());
@@ -264,16 +260,6 @@ class JenkinsAssistant {
 
 if (!process.env.JENKINS_URL) {
     console.error('Please tell me where is my boss Jenkins via environment variable JENKINS_URL.');
-    process.exit(-1);
-}
-
-if (!process.env.JENKINS_USERID) {
-    console.error('Please tell me where is my boss Jenkins via environment variable JENKINS_USERID.');
-    process.exit(-1);
-}
-
-if (!process.env.JENKINS_TOKEN) {
-    console.error('Please tell me where is my boss Jenkins via environment variable JENKINS_TOKEN.');
     process.exit(-1);
 }
 
