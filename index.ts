@@ -4,6 +4,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
 const rest = require('restler');
+const Nestor = require('nestor');
 
 const RULES_DIR = 'rules';
 const BREAK_PERIOD = 1000;
@@ -59,8 +60,15 @@ class JenkinsAssistant {
 
     private eventIds: string[] = [];
 
+    private nestor: any;
+
     constructor() {
         this.initRules();
+        this.nestor = new Nestor(process.env.JENKINS_URL);
+    }
+
+    private getJenkinsUrl = () : string => {
+        return ``;
     }
 
     private listenToAdmin() {
@@ -162,6 +170,9 @@ class JenkinsAssistant {
                 for (let j = 0; j < rule.triggerJobs.length; j++) {
                     let trigger: JobTrigger = rule.triggerJobs[j];
                     console.info(trigger.jobName);
+                    this.nestor.buildJob(trigger.jobName, '', function (err, result) {
+                        console.error(err);
+                    });
                 }
             }
         }
@@ -253,6 +264,16 @@ class JenkinsAssistant {
 
 if (!process.env.JENKINS_URL) {
     console.error('Please tell me where is my boss Jenkins via environment variable JENKINS_URL.');
+    process.exit(-1);
+}
+
+if (!process.env.JENKINS_USERID) {
+    console.error('Please tell me where is my boss Jenkins via environment variable JENKINS_USERID.');
+    process.exit(-1);
+}
+
+if (!process.env.JENKINS_TOKEN) {
+    console.error('Please tell me where is my boss Jenkins via environment variable JENKINS_TOKEN.');
     process.exit(-1);
 }
 

@@ -1,5 +1,5 @@
 {
-    "name": "test",
+    "name": "ccaap-linux",
     "ruleType": "watchThenTigger",
     "branchesToWatch": [
         {
@@ -12,7 +12,7 @@
     ],
     "tiggerJobs": [
         {
-            "jobName": ""
+            "jobName": "Build-CoreChemistry-Linux"
         }
     ]
 }
