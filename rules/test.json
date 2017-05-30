@@ -5,8 +5,8 @@
         {
             "repository": "topblack/topblack.github.io",
             "branches": {
-                "include": ["refs/heads/master"],
-                "exclude": []
+                "includes": ["refs/heads/master"],
+                "excludes": []
             }
         }
     ],

@@ -3,42 +3,56 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
-const Client = require('node-rest-client').Client;
-const client = new Client();
+const rest = require('restler');
 
 const RULES_DIR = 'rules';
 const GITHUB_BROKER = 'http://shdev.scienceaccelerated.com:8081/consumers/chemjenkins';
-const restClientArgs = {
-    requestConfig: {timeout: 1000},
-    responseConfig: {timeout: 2000}
-}
+const BREAK_PERIOD = 1000;
 
 const enum RuleType {
     watchThenTrigger
 }
 
 interface BranchFilter {
-    include: string[],
-    exclude: string[]
+    includes: string[];
+    excludes: string[];
 }
 
 interface RepoBranches {
-    repository: string,
-    branches: BranchFilter
+    repository: string;
+    branches: BranchFilter;
 }
 
 interface Rule {
-    name: string,
-    ruleType: RuleType,
-    branchesToWatch: RepoBranches[]
+    name: string;
+    ruleType: RuleType;
+    branchesToWatch: RepoBranches[];
 }
 
 interface JobTrigger {
-    jobName: string
+    jobName: string;
 }
 
 interface WatchThenTriggerRule extends Rule {
-    triggerJobs: JobTrigger[]
+    triggerJobs: JobTrigger[];
+}
+
+interface Event {
+    repository: Repository;
+}
+
+interface PushEvent extends Event {
+    ref: string;
+    created: boolean;
+    deleted: boolean;
+}
+
+interface PullRequestEvent extends Event {
+    action: string;
+}
+
+interface Repository {
+    full_name: string;
 }
 
 class JenkinsAssistant {
@@ -63,8 +77,16 @@ class JenkinsAssistant {
     public work() {
         this.listenToAdmin();
         this.getExternalTasks();
-        this.handleOneTask();
+        this.handleNextTask();
         console.info('I am working');
+    }
+
+    private getUrlEvents = () => {
+        return GITHUB_BROKER + '/events/';
+    }
+
+    private getUrlEvent = (id) => {
+        return this.getUrlEvents() + id;
     }
 
     /**
@@ -72,20 +94,23 @@ class JenkinsAssistant {
      */
     private getExternalTasks = () => {
         if (this.eventIds.length > 0) {
+            console.info(`I am busy with the ${this.eventIds.length} tasks in my queue.`);
             setTimeout(this.getExternalTasks, this.eventIds.length * 2000);
         } else {
-            client.get(GITHUB_BROKER + '/events/', restClientArgs, this.handleReceivedEvents);
+            rest.get(this.getUrlEvents()).on('success', this.handleReceivedEvents);
         }
     }
 
     /**
      * If I have no tasks in the queue to do, wait 1 second then handling a new task
      */
-    private handleOneTask = () => {
+    private handleNextTask = () => {
         if (this.eventIds.length > 0) {
-            var evtUrl = GITHUB_BROKER + '/events/' + this.eventIds[0];
+            var evtUrl = this.getUrlEvent(this.eventIds[0]);
+            console.info(`Retrieving ${evtUrl}`);
+            rest.get(evtUrl).on('success', this.handleReceivedOneEvent);
         } else {
-            setTimeout(this.handleOneTask, 1000);
+            setTimeout(this.handleNextTask, BREAK_PERIOD);
         }
     }
 
@@ -93,9 +118,7 @@ class JenkinsAssistant {
      * Add the received events to the queue and schedule another poll
      */
     private handleReceivedEvents = (data, response) => {
-        console.info(data);
-        console.info(response);
-        /*
+        let ids: string[] = data;
         for (let i = 0; i < ids.length; i++) {
             let found = false;
             for (let j = 0; j < this.eventIds.length; j++) {
@@ -109,49 +132,28 @@ class JenkinsAssistant {
                 this.eventIds.push(ids[i]);
             }
         }
-*/
         setTimeout(this.getExternalTasks, 5000);
     }
 
-    private handleGetEventResult = (res) => {
-        const { statusCode } = res;
-        if (statusCode != 200) {
-            console.error(`http get error ${statusCode}`);
-        } else {
-            res.setEncoding('utf8');
-            let rawData = '';
-            res.on('data', (chunk) => { rawData += chunk; });
-            res.on('end', () => {
-                try {
-                    const parsedData = JSON.parse(rawData);
-                    this.handleReceivedEvent(parsedData);
-                    console.log(parsedData);
-                } catch (e) {
-                    console.error(e.message);
-                }
-            });
+    /**
+     * Finds matched rules and trigger the subsequent actions per rule.
+     */
+    private handleReceivedOneEvent = (evt) => {
+        let push: PushEvent = <PushEvent>evt;
+        if (push) {
+            this.handlePushEvent(push);
         }
+
+        rest.del(this.getUrlEvent(this.eventIds[0])).on('success', this.handleEventDeleted)
     }
 
-    private handleReceivedEvent = (evt) => {
-        const { ref, repository } = evt;
+    private handlePushEvent = (push: PushEvent) => {
         let matchedRules: Rule[] = [];
-        if (ref && repository) {
-            for (let i = 0; i < this.rules.length; i++) {
-                let rule = this.rules[i];
-                let found = false;
-                for (let b = 0; b < rule.branchesToWatch.length; b++) {
-                    let rb = rule.branchesToWatch[b];
-                    for (let bi = 0; bi < rb.branches.include.length; bi++) {
-                        if (ref == rb.branches.include[bi]) {
-                            found = true;
-                        }
-                        // TODO handle exclude case
-                    }
-                }
-                if (found) {
-                    matchedRules.push(rule);
-                }
+        for (let i = 0; i < this.rules.length; i++) {
+            let rule = this.rules[i];
+            if (this.isBranchWatchedByRule(push.ref, rule)) {
+                console.info(`Found rule ${rule.name}`);
+                matchedRules.push(rule);
             }
         }
 
@@ -164,6 +166,36 @@ class JenkinsAssistant {
                 }
             }
         }
+    }
+
+    /**
+     * Returns false if the branch is excluded (higher priority), returns true if the branch is included.
+     */
+    private isBranchWatchedByRule = (branchName: string, rule: Rule): boolean => {
+        let found = false;
+        for (let b = 0; b < rule.branchesToWatch.length; b++) {
+            let rb = rule.branchesToWatch[b];
+            for (let be = 0; be < rb.branches.excludes.length; be++) {
+                console.info(`Excluded? ${branchName} ${rb.branches.excludes[be]} `);
+                if (branchName == rb.branches.excludes[be]) {
+                    return false;
+                }
+            }
+            for (let bi = 0; bi < rb.branches.includes.length; bi++) {
+                console.info(`Included? ${branchName} ${rb.branches.includes[bi]} `);
+                if (branchName == rb.branches.includes[bi]) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private handleEventDeleted = () => {
+        console.info('Event deleted ' + this.eventIds[0]);
+        this.eventIds.splice(0, 1);
+        setTimeout(this.handleNextTask, BREAK_PERIOD);
     }
 
     private initRules() {
