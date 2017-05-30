@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 EXPOSE 8081
 
-ADD **/* /jenkins-assistant
+ADD **/* /jenkins-assistant/
 WORKDIR /jenkins-assistant
 
 RUN apt-get update
