@@ -10,7 +10,7 @@
             }
         }
     ],
-    "tiggerJobs": [
+    "triggerJobs": [
         {
             "jobName": "Build-CoreChemistry-Linux"
         }
