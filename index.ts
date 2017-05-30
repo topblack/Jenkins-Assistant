@@ -9,7 +9,7 @@ const Nestor = require('nestor');
 const RULES_DIR = 'rules';
 const BREAK_PERIOD = 1000;
 
-const enum RuleType {
+enum RuleType {
     watchThenTrigger
 }
 
@@ -25,7 +25,7 @@ interface RepoBranches {
 
 interface Rule {
     name: string;
-    ruleType: RuleType;
+    ruleType: string;
     branchesToWatch: RepoBranches[];
 }
 
