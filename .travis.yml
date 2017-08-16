@@ -14,5 +14,8 @@ install:
 script:
   - tsc index.ts
   - docker build -t qinling/jenkinsassistant:latest .
+
+after_success:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
   - docker push qinling/jenkinsassistant:latest
+  - docker logout

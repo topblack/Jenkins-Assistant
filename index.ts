@@ -239,6 +239,10 @@ class JenkinsAssistant {
     }
 
     private initRules() {
+        if (!fs.existsSync(RULES_DIR)) {
+            fs.mkdirSync(RULES_DIR);
+        }
+
         let ruleNames: string[] = fs.readdirSync(RULES_DIR);
         for (let i = 0; i < ruleNames.length; i++) {
             let ruleFilePath = path.join(RULES_DIR, ruleNames[i]);
