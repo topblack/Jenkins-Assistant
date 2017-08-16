@@ -1,1 +1,1 @@
-# Jenkins-Assistant
+![](https://travis-ci.org/topblack/Jenkins-Assistant.svg?branch=master)
