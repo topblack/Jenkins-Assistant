@@ -4,11 +4,14 @@ GITHUB_BROKER_URL=http://shdev.scienceaccelerated.com:8081/consumers/chemjenkins
 
 IMAGE_TAG=qinling/jenkinsassistant:latest
 
-if [ ! -d "rules" ]; then
-    mkdir rules
+rulesFolder=`pwd`
+rulesFolder="$rulesFolder/rules"
+
+if [ ! -d "$rulesFolder" ]; then
+    mkdir $rulesFolder
 fi
 
 docker stop jenkins-assistant
 docker rm jenkins-assistant
 docker rmi $IMAGE_TAG
-docker run -d -p 8081:80 -v rules:/jenkins-assistant/rules/ -e JENKINS_URL=$JENKINS_URL -e GITHUB_BROKER_URL=$GITHUB_BROKER_URL --restart=always --name jenkins-assistant $IMAGE_TAG
+docker run -d -p 8081:80 -v $rulesFolder:/jenkins-assistant/rules/ -e JENKINS_URL=$JENKINS_URL -e GITHUB_BROKER_URL=$GITHUB_BROKER_URL --restart=always --name jenkins-assistant $IMAGE_TAG

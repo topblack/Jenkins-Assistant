@@ -256,7 +256,7 @@ class JenkinsAssistant {
     }
 
     private handlePostRule = (req, res) => {
-        let newRule: Rule = req.body;
+        let newRule: Rule = JSON.parse(req.body);
         for (let i = 0; i < this.rules.length; i++) {
             let rule: Rule = this.rules[i];
             if (rule.name == newRule.name) {
