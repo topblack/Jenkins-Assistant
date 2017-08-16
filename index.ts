@@ -31,6 +31,12 @@ interface Rule {
 
 interface JobTrigger {
     jobName: string;
+    parameters: JobTriggerParameter[];
+}
+
+interface JobTriggerParameter {
+    name: string;
+    value: string;
 }
 
 interface WatchThenTriggerRule extends Rule {
@@ -74,7 +80,7 @@ class JenkinsAssistant {
             .post('/rules', this.handlePostRule)
             .get('/rules/:name', this.handleGetRule)
             .delete('/rules/:name', this.handleDeleteRule);
-        app.listen(8081);
+        app.listen(80);
     }
 
     public work() {
@@ -170,9 +176,10 @@ class JenkinsAssistant {
                 let rule: WatchThenTriggerRule = <WatchThenTriggerRule>matchedRules[i];
                 for (let j = 0; j < rule.triggerJobs.length; j++) {
                     let trigger: JobTrigger = rule.triggerJobs[j];
-                    console.info(`Triggering job ${trigger.jobName}`);
-                    // TODO, support parameterized jobs.
-                    this.nestor.buildJob(trigger.jobName, '', function (err, result) {
+                    let parameters: string = this.composeTriggerParameters(trigger.parameters);
+                    console.info(`Triggering job ${trigger.jobName} ${parameters}`);
+
+                    this.nestor.buildJob(trigger.jobName, parameters, function (err, result) {
                         if (err) {
                             console.error(err);
                         }
@@ -180,6 +187,27 @@ class JenkinsAssistant {
                 }
             }
         }
+    }
+
+    /**
+     * Returns the parameter list with the format name1=value1&name2=value2
+     */
+    private composeTriggerParameters = (parameters: JobTriggerParameter[]) => {
+        let result = '';
+
+        if (!parameters) {
+            return result;
+        }
+
+        for (let i = 0; i < parameters.length; i++) {
+            if (i != 0) {
+                result = result + '&';
+            }
+
+            result = result + parameters[i].name + '=' + parameters[i].value;
+        }
+
+        return result;
     }
 
     /**

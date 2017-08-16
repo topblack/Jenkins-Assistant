@@ -1,5 +1,5 @@
 FROM dockerregistry.scienceaccelerated.com:5000/builder:nodejs
-EXPOSE 8081
+EXPOSE 80
 
 ADD index.js /jenkins-assistant/
 ADD rules /jenkins-assistant/rules/
