@@ -10,4 +10,5 @@ fi
 
 docker stop jenkins-assistant
 docker rm jenkins-assistant
-docker run -p 8081:80 -v rules:/jenkins-assistant/rules/ -e JENKINS_URL=$JENKINS_URL -e GITHUB_BROKER_URL=$GITHUB_BROKER_URL --restart=always --name jenkins-assistant $IMAGE_TAG
+docker rmi $IMAGE_TAG
+docker run -d -p 8081:80 -v rules:/jenkins-assistant/rules/ -e JENKINS_URL=$JENKINS_URL -e GITHUB_BROKER_URL=$GITHUB_BROKER_URL --restart=always --name jenkins-assistant $IMAGE_TAG

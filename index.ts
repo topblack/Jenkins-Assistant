@@ -264,7 +264,10 @@ class JenkinsAssistant {
                 return;
             }
         }
+
+        this.rules.push(newRule);
         fs.writeFileSync(path.join(RULES_DIR, newRule.name + '.json'), JSON.stringify(req.body));
+        res.sendStatus(201);
     }
 
     private handleGetRule = (req, res) => {
