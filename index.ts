@@ -70,6 +70,7 @@ class JenkinsAssistant {
 
     constructor() {
         this.initRules();
+        console.info(process.env.JENKINS_URL);
         this.nestor = new Nestor(process.env.JENKINS_URL);
     }
 
@@ -83,7 +84,16 @@ class JenkinsAssistant {
         app.listen(80);
     }
 
-    public work() {
+    public test = () => {
+        let jobName = 'testnestor';
+        this.nestor.buildJob(jobName, 'configuration=Release', function (err, result) {
+            if (err) {
+                console.error(err);
+            }
+        });
+    }
+
+    public work = () => {
         this.listenToAdmin();
         this.getExternalTasks();
         this.handleNextTask();
@@ -311,4 +321,19 @@ if (!process.env.GITHUB_BROKER_URL) {
     process.exit(-1);
 }
 
-new JenkinsAssistant().work();
+let runInTestMode: boolean = false;
+
+for (let i = 2; i < process.argv.length; i++) {
+    if (process.argv[i] == '-t') {
+        runInTestMode = true;
+    }
+}
+
+let assistant: JenkinsAssistant = new JenkinsAssistant();
+
+if (runInTestMode) {
+    assistant.test();
+} else {
+    assistant.work();
+}
+
