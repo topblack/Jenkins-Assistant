@@ -1,3 +1,5 @@
+import { JenkinsCLI } from './jenkins-cli';
+
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
@@ -5,6 +7,7 @@ const bodyParser = require('body-parser');
 const http = require('http');
 const rest = require('restler');
 const Nestor = require('nestor');
+
 
 const RULES_DIR = 'rules';
 const BREAK_PERIOD = 1000;
@@ -68,10 +71,19 @@ class JenkinsAssistant {
 
     private nestor: any;
 
+    private jenkins: JenkinsCLI;
+
     constructor() {
         this.initRules();
         console.info(process.env.JENKINS_URL);
+        let urlSegs = process.env.JENKINS_URL.split('://');
+        let protocol = urlSegs[0];
+        let urlWithToken = urlSegs[1].split('@');
+        let token = urlWithToken[0];
+        let url = protocol + '://' + urlWithToken[1];
+
         this.nestor = new Nestor(process.env.JENKINS_URL);
+        this.jenkins = new JenkinsCLI(url, token);
     }
 
     private listenToAdmin() {
@@ -85,12 +97,10 @@ class JenkinsAssistant {
     }
 
     public test = () => {
+        console.info('Build job');
         let jobName = 'testnestor';
-        this.nestor.buildJob(jobName, 'configuration=Release', function (err, result) {
-            if (err) {
-                console.error(err);
-            }
-        });
+
+        this.jenkins.buildJob(jobName, ['configuration=Debug', 'notifyList=leon andrew jeff']);
     }
 
     public work = () => {
