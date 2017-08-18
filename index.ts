@@ -81,7 +81,7 @@ class JenkinsAssistant {
         this.jenkins = new JenkinsCLI(url, token);
     }
 
-    private listenToAdmin(port : number) {
+    private listenToAdmin(port: number) {
         let app = express();
         app.use(bodyParser.json());
         app.get('/rules', this.handleGetRules)
@@ -110,7 +110,7 @@ class JenkinsAssistant {
         return process.env.GITHUB_BROKER_URL + '/events/';
     }
 
-    private getUrlEvent = (id) => {
+    private getUrlEvent = (id: string) => {
         return this.getUrlEvents() + id;
     }
 
@@ -131,7 +131,7 @@ class JenkinsAssistant {
      */
     private handleNextTask = () => {
         if (this.eventIds.length > 0) {
-            var evtUrl = this.getUrlEvent(this.eventIds[0]);
+            let evtUrl = this.getUrlEvent(this.eventIds[0]);
             console.info(`Retrieving ${evtUrl}`);
             rest.get(evtUrl).on('success', this.handleReceivedOneEvent);
         } else {
@@ -142,12 +142,12 @@ class JenkinsAssistant {
     /**
      * Add the received events to the queue and schedule another poll
      */
-    private handleReceivedEvents = (data, response) => {
+    private handleReceivedEvents = (data: string[], response: any) => {
         let ids: string[] = data;
         for (let i = 0; i < ids.length; i++) {
             let found = false;
             for (let j = 0; j < this.eventIds.length; j++) {
-                if (this.eventIds[j] == ids[i]) {
+                if (this.eventIds[j] === ids[i]) {
                     found = true;
                     break;
                 }
@@ -163,8 +163,8 @@ class JenkinsAssistant {
     /**
      * Finds matched rules and trigger the subsequent actions per rule.
      */
-    private handleReceivedOneEvent = (evt) => {
-        let push: PushEvent = <PushEvent>evt;
+    private handleReceivedOneEvent = (evt: any) => {
+        let push: PushEvent = evt as PushEvent;
         if (push) {
             this.handlePushEvent(push);
         }
@@ -188,8 +188,8 @@ class JenkinsAssistant {
 
         // Trigger the configured jobs.
         for (let i = 0; i < matchedRules.length; i++) {
-            if (matchedRules[i].ruleType == RuleType[RuleType.watchThenTrigger]) {
-                let rule: WatchThenTriggerRule = <WatchThenTriggerRule>matchedRules[i];
+            if (matchedRules[i].ruleType === RuleType[RuleType.watchThenTrigger]) {
+                let rule: WatchThenTriggerRule = matchedRules[i] as WatchThenTriggerRule;
                 for (let j = 0; j < rule.triggerJobs.length; j++) {
                     let trigger: JobTrigger = rule.triggerJobs[j];
                     let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
@@ -205,7 +205,7 @@ class JenkinsAssistant {
      * Returns the parameter list with the format name1=value1&name2=value2
      */
     private composeTriggerParameters = (parameters: JobTriggerParameter[]) => {
-        let result : string[] = [];
+        let result: string[] = [];
 
         if (!parameters) {
             return result;
@@ -226,12 +226,12 @@ class JenkinsAssistant {
         for (let b = 0; b < rule.branchesToWatch.length; b++) {
             let rb = rule.branchesToWatch[b];
             for (let be = 0; be < rb.branches.excludes.length; be++) {
-                if (branchName == rb.branches.excludes[be]) {
+                if (branchName === rb.branches.excludes[be]) {
                     return false;
                 }
             }
             for (let bi = 0; bi < rb.branches.includes.length; bi++) {
-                if (branchName == rb.branches.includes[bi]) {
+                if (branchName === rb.branches.includes[bi]) {
                     return true;
                 }
             }
@@ -253,25 +253,25 @@ class JenkinsAssistant {
 
         let ruleNames: string[] = fs.readdirSync(RULES_DIR);
         for (let i = 0; i < ruleNames.length; i++) {
-            if (ruleNames[i].indexOf('.') == 0 || ruleNames[i].indexOf('.json') < 0) {
+            if (ruleNames[i].indexOf('.') === 0 || ruleNames[i].indexOf('.json') < 0) {
                 continue;
             }
-            let ruleFilePath : string = path.join(RULES_DIR, ruleNames[i]);
+            let ruleFilePath: string = path.join(RULES_DIR, ruleNames[i]);
             let ruleContent = fs.readFileSync(ruleFilePath, 'utf-8');
             this.rules.push(JSON.parse(ruleContent));
         }
     }
 
-    private handleGetRules = (req, res) => {
+    private handleGetRules = (req: any, res: any) => {
         res.send(JSON.stringify(this.rules));
     }
 
-    private handlePostRule = (req, res) => {
+    private handlePostRule = (req: any, res: any) => {
         let newRule: Rule = req.body;
         console.info(JSON.stringify(req.body));
         for (let i = 0; i < this.rules.length; i++) {
             let rule: Rule = this.rules[i];
-            if (rule.name == newRule.name) {
+            if (rule.name === newRule.name) {
                 res.sendStatus(409);
                 return;
             }
@@ -282,7 +282,7 @@ class JenkinsAssistant {
         res.sendStatus(201);
     }
 
-    private handleGetRule = (req, res) => {
+    private handleGetRule = (req: any, res: any) => {
         let targetRuleFile: string = path.join(RULES_DIR, req.params.name + '.json');
         if (!fs.existsSync(targetRuleFile)) {
             res.sendStatus(404);
@@ -292,7 +292,7 @@ class JenkinsAssistant {
         }
     }
 
-    private handleDeleteRule = (req, res) => {
+    private handleDeleteRule = (req: any, res: any) => {
         let targetRuleFile: string = path.join(RULES_DIR, req.params.name + '.json');
         if (fs.existsSync(targetRuleFile)) {
             fs.unlinkSync(targetRuleFile);
@@ -300,7 +300,7 @@ class JenkinsAssistant {
         let idToSplice = -1;
         for (let i = 0; i < this.rules.length; i++) {
             let rule: Rule = this.rules[i];
-            if (rule.name == req.params.name) {
+            if (rule.name === req.params.name) {
                 idToSplice = i;
                 break;
             }
@@ -326,7 +326,7 @@ if (!process.env.GITHUB_BROKER_URL) {
 let runInTestMode: boolean = false;
 
 for (let i = 2; i < process.argv.length; i++) {
-    if (process.argv[i] == '-t') {
+    if (process.argv[i] === '-t') {
         runInTestMode = true;
     }
 }

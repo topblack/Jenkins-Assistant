@@ -12,7 +12,7 @@ install:
   - npm install
 
 script:
-  - tsc
+  - gulp
   - docker build -t qinling/jenkinsassistant:latest .
 
 after_success:
