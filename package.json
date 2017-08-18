@@ -20,7 +20,6 @@
     "@types/node": "^7.0.22",
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
-    "nestor": "^1.0.2",
     "require": "^2.4.20",
     "restler": "^3.4.0",
     "typescript": "^2.3.3"

@@ -12,7 +12,7 @@ install:
   - npm install
 
 script:
-  - tsc index.ts
+  - tsc
   - docker build -t qinling/jenkinsassistant:latest .
 
 after_success:

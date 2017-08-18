@@ -6,8 +6,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
 const rest = require('restler');
-const Nestor = require('nestor');
-
 
 const RULES_DIR = 'rules';
 const BREAK_PERIOD = 1000;
@@ -69,8 +67,6 @@ class JenkinsAssistant {
 
     private eventIds: string[] = [];
 
-    private nestor: any;
-
     private jenkins: JenkinsCLI;
 
     constructor() {
@@ -82,29 +78,29 @@ class JenkinsAssistant {
         let token = urlWithToken[0];
         let url = protocol + '://' + urlWithToken[1];
 
-        this.nestor = new Nestor(process.env.JENKINS_URL);
         this.jenkins = new JenkinsCLI(url, token);
     }
 
-    private listenToAdmin() {
+    private listenToAdmin(port : number) {
         let app = express();
         app.use(bodyParser.json());
         app.get('/rules', this.handleGetRules)
             .post('/rules', this.handlePostRule)
             .get('/rules/:name', this.handleGetRule)
             .delete('/rules/:name', this.handleDeleteRule);
-        app.listen(80);
+        app.listen(port);
     }
 
     public test = () => {
-        console.info('Build job');
-        let jobName = 'testnestor';
+        console.info('Run test...');
+        this.listenToAdmin(82);
+        //let jobName = 'testnestor';
 
-        this.jenkins.buildJob(jobName, ['configuration=Debug', 'notifyList=leon andrew jeff']);
+        //this.jenkins.buildJob(jobName, ['configuration=Debug', 'notifyList=leon andrew jeff']);
     }
 
     public work = () => {
-        this.listenToAdmin();
+        this.listenToAdmin(80);
         this.getExternalTasks();
         this.handleNextTask();
         console.info('I am working');
@@ -196,14 +192,10 @@ class JenkinsAssistant {
                 let rule: WatchThenTriggerRule = <WatchThenTriggerRule>matchedRules[i];
                 for (let j = 0; j < rule.triggerJobs.length; j++) {
                     let trigger: JobTrigger = rule.triggerJobs[j];
-                    let parameters: string = this.composeTriggerParameters(trigger.parameters);
+                    let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
                     console.info(`Triggering job ${trigger.jobName} ${parameters}`);
 
-                    this.nestor.buildJob(trigger.jobName, parameters, function (err, result) {
-                        if (err) {
-                            console.error(err);
-                        }
-                    });
+                    this.jenkins.buildJob(trigger.jobName, parameters);
                 }
             }
         }
@@ -213,18 +205,14 @@ class JenkinsAssistant {
      * Returns the parameter list with the format name1=value1&name2=value2
      */
     private composeTriggerParameters = (parameters: JobTriggerParameter[]) => {
-        let result = '';
+        let result : string[] = [];
 
         if (!parameters) {
             return result;
         }
 
         for (let i = 0; i < parameters.length; i++) {
-            if (i != 0) {
-                result = result + '&';
-            }
-
-            result = result + parameters[i].name + '=' + parameters[i].value;
+            result.push(parameters[i].name + '=' + parameters[i].value);
         }
 
         return result;
@@ -265,7 +253,10 @@ class JenkinsAssistant {
 
         let ruleNames: string[] = fs.readdirSync(RULES_DIR);
         for (let i = 0; i < ruleNames.length; i++) {
-            let ruleFilePath = path.join(RULES_DIR, ruleNames[i]);
+            if (ruleNames[i].indexOf('.') == 0 || ruleNames[i].indexOf('.json') < 0) {
+                continue;
+            }
+            let ruleFilePath : string = path.join(RULES_DIR, ruleNames[i]);
             let ruleContent = fs.readFileSync(ruleFilePath, 'utf-8');
             this.rules.push(JSON.parse(ruleContent));
         }
@@ -277,6 +268,7 @@ class JenkinsAssistant {
 
     private handlePostRule = (req, res) => {
         let newRule: Rule = req.body;
+        console.info(JSON.stringify(req.body));
         for (let i = 0; i < this.rules.length; i++) {
             let rule: Rule = this.rules[i];
             if (rule.name == newRule.name) {
