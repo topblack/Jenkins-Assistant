@@ -6,4 +6,4 @@ ADD lib/* /jenkins-assistant/
 ADD node_modules /jenkins-assistant/node_modules/
 WORKDIR /jenkins-assistant
 
-ENTRYPOINT node index.js
+ENTRYPOINT node index.js jenkins
