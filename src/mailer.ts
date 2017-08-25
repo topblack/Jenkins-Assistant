@@ -40,8 +40,3 @@ export class Mailer {
         });
     }
 };
-
-let mailer = new Mailer('mx1.perkinelmer.com', 25, 'no-reply@perkinelmer.com', 'perkinelmer.com');
-
-mailer.sendMail('leon.qin@perkinelmer.com', 'this is subject', 'this is the content');
-

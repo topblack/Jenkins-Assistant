@@ -1,4 +1,5 @@
 import { JenkinsCLI } from './jenkins-cli';
+import { Mailer } from './mailer';
 
 const fs = require('fs');
 const path = require('path');
@@ -69,6 +70,10 @@ export class JenkinsAssistant {
 
     private jenkins: JenkinsCLI;
 
+    private mailer: Mailer;
+
+    private adminEmail: string;
+
     constructor() {
         this.initRules();
         console.info(process.env.JENKINS_URL);
@@ -79,6 +84,8 @@ export class JenkinsAssistant {
         let url = protocol + '://' + urlWithToken[1];
 
         this.jenkins = new JenkinsCLI(url, token);
+        this.mailer = new Mailer('mx1.perkinelmer.com', 25, 'no-reply-jenkins-assistant@perkinelmer.com', 'perkinelmer.com');
+        this.adminEmail = process.env.ADMIN_EMAIL;
     }
 
     private listenToAdmin(port: number) {
@@ -104,6 +111,7 @@ export class JenkinsAssistant {
         this.getExternalTasks();
         this.handleNextTask();
         console.info('I am working');
+        this.mailer.sendMail(this.adminEmail, 'Jenkins Assistant just started.', 'Jenkins Assistant just started.')
     }
 
     private getUrlEvents = () => {
