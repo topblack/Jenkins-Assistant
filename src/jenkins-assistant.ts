@@ -70,6 +70,10 @@ export class JenkinsAssistant {
 
     private jenkins: JenkinsCLI;
 
+    private lastJenkinsVersion: string;
+
+    private lastCheckVersionTime: Date;
+
     private mailer: Mailer;
 
     private adminEmail: string;
@@ -86,6 +90,7 @@ export class JenkinsAssistant {
         this.jenkins = new JenkinsCLI(url, token);
         this.mailer = new Mailer('mx1.perkinelmer.com', 25, 'no-reply-jenkins-assistant@perkinelmer.com', 'perkinelmer.com');
         this.adminEmail = process.env.ADMIN_EMAIL;
+        this.lastCheckVersionTime = new Date(0);
     }
 
     private listenToAdmin(port: number) {
@@ -138,6 +143,22 @@ export class JenkinsAssistant {
      * If I have no tasks in the queue to do, wait 1 second then handling a new task
      */
     private handleNextTask = () => {
+        let now: Date = new Date();
+        if (now.getTime() - this.lastCheckVersionTime.getTime() > 60 * 60 * 1000) {
+            try {
+                this.lastCheckVersionTime = now;
+                let version = this.jenkins.getVersion();
+                if (version !== this.lastJenkinsVersion) {
+                    let message = 'Current: ' + version + '<br>Previous: ' + this.lastJenkinsVersion;
+                    this.mailer.sendMail(this.adminEmail, 'Jenkins status changed', message);
+                }
+                this.lastJenkinsVersion = version;
+            } catch (error) {
+                console.error(error);
+                this.mailer.sendMail(this.adminEmail, 'Jenkins status error', error);
+            }
+        }
+
         if (this.eventIds.length > 0) {
             let evtUrl = this.getUrlEvent(this.eventIds[0]);
             console.info(`Retrieving ${evtUrl}`);

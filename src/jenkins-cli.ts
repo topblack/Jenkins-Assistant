@@ -30,6 +30,10 @@ export class JenkinsCLI {
         return result.split('\n');
     }
 
+    public getVersion = () => {
+        return this.execute('version');
+    }
+
     public buildJob = (jobName: string, parameters?: string[]) => {
         let command = 'build ' + jobName;
         if (parameters && parameters.length > 0) {
