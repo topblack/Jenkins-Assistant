@@ -5,10 +5,15 @@ var tslint = require('gulp-tslint')
 var src = 'src/*.ts';
 var tsProject = ts.createProject('tsconfig.json');
 
-gulp.task('tsc', function () {
-    var tsResult = gulp.src(src)
+gulp.task('server', function () {
+    var tsResult = gulp.src('src/server/*.ts')
         .pipe(tsProject());
-    return tsResult.js.pipe(gulp.dest("./dist/"));
+    return tsResult.js.pipe(gulp.dest("./dist/server"));
+});
+
+gulp.task('ui', function () {
+    gulp.src('src/web/*')
+        .pipe(gulp.dest('dist/ui'));
 });
 
 gulp.task('lint', function () {
@@ -20,4 +25,4 @@ gulp.task('lint', function () {
         .pipe(tslint.report())
 });
 
-gulp.task('default', [ 'lint', 'tsc'] );
+gulp.task('default', [ 'lint', 'server', 'ui'] );

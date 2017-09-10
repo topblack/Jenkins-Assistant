@@ -9,7 +9,7 @@ const http = require('http');
 const rest = require('restler');
 
 const RULES_DIR = 'rules';
-const BREAK_PERIOD = 1000;
+const BREAK_PERIOD = 5000;
 
 enum RuleType {
     watchThenTrigger
@@ -100,6 +100,7 @@ export class JenkinsAssistant {
             .post('/rules', this.handlePostRule)
             .get('/rules/:name', this.handleGetRule)
             .delete('/rules/:name', this.handleDeleteRule);
+        app.use('/admin', express.static('../ui'));
         app.listen(port);
     }
 
