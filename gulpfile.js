@@ -2,11 +2,11 @@ var gulp = require('gulp');
 var ts = require('gulp-typescript');
 var tslint = require('gulp-tslint')
 
-var src = 'src/*.ts';
+var src = 'src/**/*.ts';
 var tsProject = ts.createProject('tsconfig.json');
 
 gulp.task('server', function () {
-    var tsResult = gulp.src('src/server/*.ts')
+    var tsResult = gulp.src('src/server/**/*.ts')
         .pipe(tsProject());
     return tsResult.js.pipe(gulp.dest("./dist/server"));
 });

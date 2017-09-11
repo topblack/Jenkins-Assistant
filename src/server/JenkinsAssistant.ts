@@ -1,5 +1,7 @@
-import { JenkinsCLI } from './jenkins-cli';
-import { Mailer } from './mailer';
+import { JenkinsCLI } from './JenkinsCLI';
+import { scheduler } from './Scheduler';
+import { ServiceStatusReportJob } from './jd/ServiceStatusReportJob';
+
 
 const fs = require('fs');
 const path = require('path');
@@ -74,12 +76,12 @@ export class JenkinsAssistant {
 
     private lastCheckVersionTime: Date;
 
-    private mailer: Mailer;
 
     private adminEmail: string;
 
     constructor() {
         this.initRules();
+        /*
         console.info(process.env.JENKINS_URL);
         let urlSegs = process.env.JENKINS_URL.split('://');
         let protocol = urlSegs[0];
@@ -88,8 +90,9 @@ export class JenkinsAssistant {
         let url = protocol + '://' + urlWithToken[1];
 
         this.jenkins = new JenkinsCLI(url, token);
-        this.mailer = new Mailer('mx1.perkinelmer.com', 25, 'no-reply-jenkins-assistant@perkinelmer.com', 'perkinelmer.com');
+
         this.adminEmail = process.env.ADMIN_EMAIL;
+        */
         this.lastCheckVersionTime = new Date(0);
     }
 
@@ -114,10 +117,9 @@ export class JenkinsAssistant {
 
     public serve = (port: number) => {
         this.listenToAdmin(port);
-        this.getExternalTasks();
-        this.handleNextTask();
-        console.info('I am working');
-        this.mailer.sendMail(this.adminEmail, 'Jenkins Assistant just started.', 'Jenkins Assistant just started.')
+        // this.getExternalTasks();
+        // this.handleNextTask();
+        scheduler.schedule(new ServiceStatusReportJob('leon.qin@perkinelmer.com', '*/2 * * * *'));
     }
 
     private getUrlEvents = () => {
@@ -151,12 +153,12 @@ export class JenkinsAssistant {
                 let version = this.jenkins.getVersion();
                 if (version !== this.lastJenkinsVersion) {
                     let message = 'Current: ' + version + '<br>Previous: ' + this.lastJenkinsVersion;
-                    this.mailer.sendMail(this.adminEmail, 'Jenkins status changed', message);
+                    //this.mailer.sendMail(this.adminEmail, 'Jenkins status changed', message);
                 }
                 this.lastJenkinsVersion = version;
             } catch (error) {
                 console.error(error);
-                this.mailer.sendMail(this.adminEmail, 'Jenkins status error', error);
+                //this.mailer.sendMail(this.adminEmail, 'Jenkins status error', error);
             }
         }
 

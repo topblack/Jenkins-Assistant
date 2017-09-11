@@ -4,7 +4,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 
 const CONSUMERS_DIR = 'consumers';
-export class GitHubEventBroker {
+export class GitHubWebhookBroker {
     public serve(port: number): number {
         if (!fs.existsSync(CONSUMERS_DIR)) {
             fs.mkdirSync(CONSUMERS_DIR);

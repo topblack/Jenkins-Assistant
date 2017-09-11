@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-export class Mailer {
+class Mailer {
     private host: string;
 
     private port: number;
@@ -40,3 +40,5 @@ export class Mailer {
         });
     }
 };
+
+export let mailer = new Mailer('mx1.perkinelmer.com', 25, 'no-reply-jenkins-assistant@perkinelmer.com', 'perkinelmer.com');
