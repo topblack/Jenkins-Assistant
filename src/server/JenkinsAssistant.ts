@@ -117,7 +117,7 @@ export class JenkinsAssistant {
     public serve = (port: number) => {
         this.listenToAdmin(port);
 
-        scheduler.schedule(new ServiceStatusReportJob('leon.qin@perkinelmer.com', '* 7,19 * * *'));
+        //scheduler.schedule(new ServiceStatusReportJob('leon.qin@perkinelmer.com', '* 7,19 * * *'));
     }
 
     /**

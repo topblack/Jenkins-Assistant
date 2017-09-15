@@ -5,7 +5,7 @@ enum Mode {
     Default, Test, JenkinsAssistant, GitHubWebHook
 }
 
-let port: number = 80;
+let port: number = 88;
 let mode: Mode = Mode.Default;
 
 if (process.argv[2] === 'test') {
