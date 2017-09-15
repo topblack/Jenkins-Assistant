@@ -1,3 +1,5 @@
+const io = require('socket.io-client');
+
 import { JenkinsCLI } from './JenkinsCLI';
 import { scheduler } from './Scheduler';
 import { ServiceStatusReportJob } from './jd/ServiceStatusReportJob';
@@ -11,11 +13,8 @@ const http = require('http');
 const rest = require('restler');
 
 const app = express();
-const server = require('http').Server(app);
-const io = require('socket.io')(server);
 
 const RULES_DIR = 'rules';
-const BREAK_PERIOD = 5000;
 
 enum RuleType {
     watchThenTrigger
@@ -72,32 +71,17 @@ interface Repository {
 export class JenkinsAssistant {
     private rules: Rule[] = [];
 
-    private eventIds: string[] = [];
-
     private jenkins: JenkinsCLI;
-
-    private lastJenkinsVersion: string;
-
-    private lastCheckVersionTime: Date;
-
 
     private adminEmail: string;
 
     constructor() {
         this.initRules();
-        /*
-        console.info(process.env.JENKINS_URL);
-        let urlSegs = process.env.JENKINS_URL.split('://');
-        let protocol = urlSegs[0];
-        let urlWithToken = urlSegs[1].split('@');
-        let token = urlWithToken[0];
-        let url = protocol + '://' + urlWithToken[1];
 
+        let token = 'qinll:d8f07b93412618d4bf87d905cceb3d8c';
+        let url = 'http://chemjenkins.perkinelmer.net:8080';
         this.jenkins = new JenkinsCLI(url, token);
-
-        this.adminEmail = process.env.ADMIN_EMAIL;
-        */
-        this.lastCheckVersionTime = new Date(0);
+        this.adminEmail = 'leon.qin@perkinelmer.com';
     }
 
     private listenToAdmin(port: number) {
@@ -108,118 +92,43 @@ export class JenkinsAssistant {
             .delete('/rules/:name', this.handleDeleteRule);
         app.use('/admin', express.static('ui'));
 
-        io.on('connection', function (socket: any) {
-            socket.emit('news', { hello: 'world' });
-            socket.on('my other event', function (data: any) {
-              console.log(data);
-            });
+        let socket = io('http://shdev.scienceaccelerated.com:8081/chemjenkins');
+        socket.on('connect', (sock: any) => {
+            console.info('Connected');
+        });
+        socket.on('reconnect', (sock: any) => {
+            console.info('Reconnected');
+        });
+        socket.on('disconnect', (sock: any) => {
+            console.info('Disconnected');
+        });
+        socket.on('push', (data: any) => {
+            try {
+                this.handlePushEvent(data);
+            } catch (error) {
+                logger.error(error);
+            }
         });
 
-        server.listen(port);
+        app.listen(port);
         logger.info('Listening port ' + port);
-    }
-
-    public test = () => {
-        console.info('Run test...');
-        this.listenToAdmin(82);
-        //let jobName = 'testnestor';
-
-        //this.jenkins.buildJob(jobName, ['configuration=Debug', 'notifyList=leon andrew jeff']);
     }
 
     public serve = (port: number) => {
         this.listenToAdmin(port);
-        // this.getExternalTasks();
-        // this.handleNextTask();
-        //scheduler.schedule(new ServiceStatusReportJob('leon.qin@perkinelmer.com', '*/2 * * * *'));
-    }
 
-    private getUrlEvents = () => {
-        return process.env.GITHUB_BROKER_URL + '/events/';
-    }
-
-    private getUrlEvent = (id: string) => {
-        return this.getUrlEvents() + id;
-    }
-
-    /**
-     * If I am busy with existing tasks, wait 2*n seconds before getting new tasks
-     */
-    private getExternalTasks = () => {
-        if (this.eventIds.length > 0) {
-            console.info(`I am busy with the ${this.eventIds.length} tasks in my queue.`);
-            setTimeout(this.getExternalTasks, this.eventIds.length * 2000);
-        } else {
-            rest.get(this.getUrlEvents()).on('success', this.handleReceivedEvents);
-        }
-    }
-
-    /**
-     * If I have no tasks in the queue to do, wait 1 second then handling a new task
-     */
-    private handleNextTask = () => {
-        let now: Date = new Date();
-        if (now.getTime() - this.lastCheckVersionTime.getTime() > 60 * 60 * 1000) {
-            try {
-                this.lastCheckVersionTime = now;
-                let version = this.jenkins.getVersion();
-                if (version !== this.lastJenkinsVersion) {
-                    let message = 'Current: ' + version + '<br>Previous: ' + this.lastJenkinsVersion;
-                    //this.mailer.sendMail(this.adminEmail, 'Jenkins status changed', message);
-                }
-                this.lastJenkinsVersion = version;
-            } catch (error) {
-                console.error(error);
-                //this.mailer.sendMail(this.adminEmail, 'Jenkins status error', error);
-            }
-        }
-
-        if (this.eventIds.length > 0) {
-            let evtUrl = this.getUrlEvent(this.eventIds[0]);
-            console.info(`Retrieving ${evtUrl}`);
-            rest.get(evtUrl).on('success', this.handleReceivedOneEvent);
-        } else {
-            setTimeout(this.handleNextTask, BREAK_PERIOD);
-        }
-    }
-
-    /**
-     * Add the received events to the queue and schedule another poll
-     */
-    private handleReceivedEvents = (data: string[], response: any) => {
-        let ids: string[] = data;
-        for (let i = 0; i < ids.length; i++) {
-            let found = false;
-            for (let j = 0; j < this.eventIds.length; j++) {
-                if (this.eventIds[j] === ids[i]) {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                this.eventIds.push(ids[i]);
-            }
-        }
-        setTimeout(this.getExternalTasks, 5000);
-    }
-
-    /**
-     * Finds matched rules and trigger the subsequent actions per rule.
-     */
-    private handleReceivedOneEvent = (evt: any) => {
-        let push: PushEvent = evt as PushEvent;
-        if (push) {
-            this.handlePushEvent(push);
-        }
-
-        rest.del(this.getUrlEvent(this.eventIds[0])).on('success', this.handleEventDeleted)
+        scheduler.schedule(new ServiceStatusReportJob('leon.qin@perkinelmer.com', '* 7,19 * * *'));
     }
 
     /**
      * Handles the push event.
      */
     private handlePushEvent = (push: PushEvent) => {
+        if (!push) {
+            logger.warn('Not a push event');
+            return;
+        }
+
         // Check if the branch mentioned in the push event is covered in the defined rule.
         let matchedRules: Rule[] = [];
         for (let i = 0; i < this.rules.length; i++) {
@@ -230,6 +139,10 @@ export class JenkinsAssistant {
             }
         }
 
+        if (matchedRules.length === 0) {
+            logger.info('No rules found for the received event.');
+        }
+
         // Trigger the configured jobs.
         for (let i = 0; i < matchedRules.length; i++) {
             if (matchedRules[i].ruleType === RuleType[RuleType.watchThenTrigger]) {
@@ -237,7 +150,7 @@ export class JenkinsAssistant {
                 for (let j = 0; j < rule.triggerJobs.length; j++) {
                     let trigger: JobTrigger = rule.triggerJobs[j];
                     let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
-                    console.info(`Triggering job ${trigger.jobName} ${parameters}`);
+                    logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
 
                     this.jenkins.buildJob(trigger.jobName, parameters);
                 }
@@ -282,12 +195,6 @@ export class JenkinsAssistant {
         }
 
         return false;
-    }
-
-    private handleEventDeleted = () => {
-        console.info('Event deleted ' + this.eventIds[0]);
-        this.eventIds.splice(0, 1);
-        setTimeout(this.handleNextTask, BREAK_PERIOD);
     }
 
     private initRules() {
