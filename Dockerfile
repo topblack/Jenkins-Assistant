@@ -9,4 +9,4 @@ WORKDIR /jenkins-assistant
 
 RUN chmod +x /jenkins-assistant/entrypoint.sh
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["node", "server/index.js"]

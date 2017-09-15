@@ -1,3 +1,3 @@
 #!/bin/bash
 
-node server/index.js jenkins
+node server/index.js
