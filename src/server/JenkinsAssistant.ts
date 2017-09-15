@@ -92,7 +92,7 @@ export class JenkinsAssistant {
             .delete('/rules/:name', this.handleDeleteRule);
         app.use('/admin', express.static('ui'));
 
-        let socket = io('http://shdev.scienceaccelerated.com:8081/chemjenkins');
+        let socket = io('http://shdev.scienceaccelerated.com:8080/chemjenkins');
         socket.on('connect', (sock: any) => {
             console.info('Connected');
         });
