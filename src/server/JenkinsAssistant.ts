@@ -1,7 +1,7 @@
 import { JenkinsCLI } from './JenkinsCLI';
 import { scheduler } from './Scheduler';
 import { ServiceStatusReportJob } from './jd/ServiceStatusReportJob';
-
+import { logger } from './Logger';
 
 const fs = require('fs');
 const path = require('path');
@@ -9,6 +9,10 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
 const rest = require('restler');
+
+const app = express();
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
 
 const RULES_DIR = 'rules';
 const BREAK_PERIOD = 5000;
@@ -97,14 +101,22 @@ export class JenkinsAssistant {
     }
 
     private listenToAdmin(port: number) {
-        let app = express();
         app.use(bodyParser.json());
         app.get('/rules', this.handleGetRules)
             .post('/rules', this.handlePostRule)
             .get('/rules/:name', this.handleGetRule)
             .delete('/rules/:name', this.handleDeleteRule);
-        app.use('/admin', express.static('../ui'));
-        app.listen(port);
+        app.use('/admin', express.static('ui'));
+
+        io.on('connection', function (socket: any) {
+            socket.emit('news', { hello: 'world' });
+            socket.on('my other event', function (data: any) {
+              console.log(data);
+            });
+        });
+
+        server.listen(port);
+        logger.info('Listening port ' + port);
     }
 
     public test = () => {
@@ -119,7 +131,7 @@ export class JenkinsAssistant {
         this.listenToAdmin(port);
         // this.getExternalTasks();
         // this.handleNextTask();
-        scheduler.schedule(new ServiceStatusReportJob('leon.qin@perkinelmer.com', '*/2 * * * *'));
+        //scheduler.schedule(new ServiceStatusReportJob('leon.qin@perkinelmer.com', '*/2 * * * *'));
     }
 
     private getUrlEvents = () => {
