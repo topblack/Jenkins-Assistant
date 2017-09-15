@@ -6,6 +6,8 @@ var src = 'src/**/*.ts';
 var tsProject = ts.createProject('tsconfig.json');
 
 gulp.task('server', function () {
+    gulp.src('node_modules/**/*').pipe(gulp.dest('./dist/server/node_modules/'));
+    gulp.src('lib/**/*').pipe(gulp.dest('./dist/server/'));
     var tsResult = gulp.src('src/server/**/*.ts')
         .pipe(tsProject());
     return tsResult.js.pipe(gulp.dest("./dist/server"));

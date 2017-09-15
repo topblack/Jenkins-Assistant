@@ -2,7 +2,7 @@ const io = require('socket.io-client');
 
 class TestSocketIO {
     public main() {
-        let socket = io('http://localhost:8082/chemjenkins');
+        let socket = io('http://shdev.scienceaccelerated.com:8081/chemjenkins');
         socket.on('connect', (sock: any) => {
             console.info('Connected');
         });
@@ -12,7 +12,7 @@ class TestSocketIO {
         socket.on('disconnect', (sock: any) => {
             console.info('Disconnected');
         });
-        socket.on('test', function (data: any) {
+        socket.on('push', function (data: any) {
             console.info(data);
         });
     }
