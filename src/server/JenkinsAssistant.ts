@@ -75,13 +75,17 @@ export class JenkinsAssistant {
 
     private adminEmail: string;
 
+    private brokerUrl: string;
+
     constructor() {
         this.initRules();
 
         let token = 'qinll:d8f07b93412618d4bf87d905cceb3d8c';
         let url = 'http://chemjenkins.perkinelmer.net:8080';
+
         this.jenkins = new JenkinsCLI(url, token);
         this.adminEmail = 'leon.qin@perkinelmer.com';
+        this.brokerUrl = 'http://shdev.scienceaccelerated.com:8080/chemjenkins';
     }
 
     private listenToAdmin(port: number) {
@@ -92,7 +96,7 @@ export class JenkinsAssistant {
             .delete('/rules/:name', this.handleDeleteRule);
         app.use('/admin', express.static('ui'));
 
-        let socket = io('http://shdev.scienceaccelerated.com:8080/chemjenkins');
+        let socket = io(this.brokerUrl);
         socket.on('connect', (sock: any) => {
             console.info('Connected');
         });

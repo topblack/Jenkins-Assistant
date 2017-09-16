@@ -2,7 +2,7 @@ const io = require('socket.io-client');
 
 class TestSocketIO {
     public main() {
-        let socket = io('http://shdev.scienceaccelerated.com:8081/chemjenkins');
+        let socket = io('http://localhost:88/chemjenkins');
         socket.on('connect', (sock: any) => {
             console.info('Connected');
         });

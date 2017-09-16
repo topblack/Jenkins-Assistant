@@ -12,25 +12,51 @@ let consumerNames: string[] = [
     'chemjenkins'
 ];
 
-const CONSUMERS_DIR = 'consumers';
+interface Socket {
+    id: string;
+    handshake: { address: string };
+}
 
 class ClientSpace {
-    id: string;
+    name: string;
     nsp: any;
+    clients: [Socket];
 
-    constructor(id: string, nsp: any) {
-        this.id = id;
+    constructor(name: string, nsp: any) {
+        this.name = name;
         this.nsp = nsp;
+        this.clients = [] as [Socket];
+    }
+
+    public registerClient(client: Socket) {
+        this.unregisterClient(client.id);
+        this.clients.push(client);
+        logger.info('Registered ' + client.handshake.address);
+    }
+
+    public unregisterClient(id: string) {
+        let idToRemove: number = -1;
+        for (let i = 0; i < this.clients.length; i++) {
+            if (this.clients[i].id === id) {
+                idToRemove = i;
+                break;
+            }
+        }
+
+        if (idToRemove >= 0) {
+            logger.info('Unregistered ' + this.clients[idToRemove].handshake.address);
+            this.clients.splice(idToRemove, 1);
+        }
     }
 }
 
-export class GitHubWebhookBroker {
+export class EventBroker {
     private clientSpaces: [ClientSpace] = [] as [ClientSpace];
 
     private pushEvent(consumerName: string, evtType: string, event: any) {
         let emitted = false;
         for (let client of this.clientSpaces) {
-            if (client.id === consumerName) {
+            if (client.name === consumerName) {
                 logger.info('Pusing events to ' + consumerName);
                 client.nsp.emit(evtType, event);
                 emitted = true;
@@ -44,16 +70,22 @@ export class GitHubWebhookBroker {
     }
 
     public serve(port: number): number {
-        if (!fs.existsSync(CONSUMERS_DIR)) {
-            fs.mkdirSync(CONSUMERS_DIR);
-        }
-
         app.use(bodyParser.json());
 
         app.use('/admin', express.static('ui'));
 
         app.get('/', (req: any, res: any) => {
-            res.send('GitHubWebhookBroker');
+            let result: string = '<html><head></head><body>';
+            for (let space of this.clientSpaces) {
+                result += ('<h1>' + space.name + '</h1>');
+                result += '<ul>';
+                for (let client of space.clients) {
+                    result += ('<li>' + client.handshake.address + '</li>');
+                }
+                result += '</ul>';
+            }
+            result += '</body></html>';
+            res.send(result);
         });
 
         app.post('/consumers/:consumerId/events', (req: any, res: any) => {
@@ -74,11 +106,14 @@ export class GitHubWebhookBroker {
 
         for (let consumerName of consumerNames) {
             let nsp = io.of('/' + consumerName);
+            let clientSpace = new ClientSpace(consumerName, nsp);
             logger.info(consumerName);
-            this.clientSpaces.push(new ClientSpace(consumerName, nsp));
+            this.clientSpaces.push(clientSpace);
             nsp.on('connection', (socket: any) => {
-                nsp.emit('hi', 'everyone!');
-                logger.info('someone connected');
+                clientSpace.registerClient(socket);
+                socket.on('disconnect', () => {
+                    clientSpace.unregisterClient(socket.id);
+                });
             });
         }
 
