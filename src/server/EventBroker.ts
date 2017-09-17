@@ -72,7 +72,9 @@ export class EventBroker {
     public serve(port: number): number {
         app.use(bodyParser.json());
 
-        app.use('/admin', express.static('ui'));
+        app.use('/admin', express.static('../ui'));
+
+        app.use('/logs', express.static('logs'));
 
         app.get('/', (req: any, res: any) => {
             let result: string = '<html><head></head><body>';
