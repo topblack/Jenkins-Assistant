@@ -17,7 +17,7 @@ const app = express();
 const RULES_DIR = 'rules';
 
 enum RuleType {
-    watchThenTrigger
+    triggerOnNewCommit
 }
 
 interface BranchFilter {
@@ -46,7 +46,7 @@ interface JobTriggerParameter {
     value: string;
 }
 
-interface WatchThenTriggerRule extends Rule {
+interface TriggerOnNewCommitRule extends Rule {
     triggerJobs: JobTrigger[];
 }
 
@@ -61,7 +61,23 @@ interface PushEvent extends Event {
 }
 
 interface PullRequestEvent extends Event {
+    /**
+     * Can be one of "assigned", "unassigned", "review_requested", "review_request_removed",
+     * "labeled", "unlabeled", "opened", "edited", "closed", or "reopened".
+     */
     action: string;
+    pull_request: PullRequest;
+}
+
+interface PullRequest {
+    head: GitReference;
+    base: GitReference;
+}
+
+interface GitReference {
+    ref: string;
+    sha: string;
+    repo: Repository;
 }
 
 interface Repository {
@@ -113,6 +129,13 @@ export class JenkinsAssistant {
                 logger.error(error);
             }
         });
+        socket.on('pull_request', (data: any) => {
+            try {
+                this.handlePullRequestEvent(data);
+            } catch (error) {
+                logger.error(error);
+            }
+        });
 
         app.listen(port);
         logger.info('Listening port ' + port);
@@ -122,6 +145,15 @@ export class JenkinsAssistant {
         this.listenToAdmin(port);
 
         //scheduler.schedule(new ServiceStatusReportJob('leon.qin@perkinelmer.com', '* 7,19 * * *'));
+    }
+
+    private handlePullRequestEvent = (prEvent: PullRequestEvent) => {
+        if (!prEvent) {
+            logger.warn('Not a pull request event');
+            return;
+        }
+
+        logger.warn('Received a pull request event. But this has not been implemented');
     }
 
     /**
@@ -145,19 +177,32 @@ export class JenkinsAssistant {
 
         if (matchedRules.length === 0) {
             logger.info('No rules found for the received event.');
+            return;
         }
 
         // Trigger the configured jobs.
         for (let i = 0; i < matchedRules.length; i++) {
-            if (matchedRules[i].ruleType === RuleType[RuleType.watchThenTrigger]) {
-                let rule: WatchThenTriggerRule = matchedRules[i] as WatchThenTriggerRule;
-                for (let j = 0; j < rule.triggerJobs.length; j++) {
-                    let trigger: JobTrigger = rule.triggerJobs[j];
-                    let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
-                    logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
+            if (!push.created && !push.deleted) {
+                if (matchedRules[i].ruleType === RuleType[RuleType.triggerOnNewCommit]) {
+                    let rule: TriggerOnNewCommitRule = matchedRules[i] as TriggerOnNewCommitRule;
+                    for (let j = 0; j < rule.triggerJobs.length; j++) {
+                        let trigger: JobTrigger = rule.triggerJobs[j];
+                        let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
+                        logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
 
-                    this.jenkins.buildJob(trigger.jobName, parameters);
+                        try {
+                            this.jenkins.buildJob(trigger.jobName, parameters);
+                        } catch (error) {
+                            logger.error(error);
+                        }
+                    }
                 }
+            } else if (push.created) {
+                // create new job
+            } else if (push.deleted) {
+                // delete a job
+            } else {
+                // empty
             }
         }
     }

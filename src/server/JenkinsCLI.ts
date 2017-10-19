@@ -1,6 +1,7 @@
 const exec = require('child_process').execSync;
 const fs = require('fs');
 const http = require('http');
+const path = require('path');
 
 export interface JobParameter {
     name: string;
@@ -19,6 +20,42 @@ export class JenkinsCLI {
 
     public help = () => {
         this.execute('help');
+    }
+
+    public createPipeline(jobPath: string, repo: string, branch: string, pipelinePath: string) {
+        let template = fs.readFileSync(path.join('jenkins_templates', 'pipeline.xml'), 'utf-8');
+
+        template = template.replace(/%pipelineRepo%/g, repo);
+        template = template.replace(/%pipelineBranch%/g, branch);
+        template = template.replace(/%pipelinePath%/g, pipelinePath);
+        try {
+            this.execute('create-job ' + jobPath, template);
+        } catch (exception) {
+            this.execute('create-job ' + jobPath, template);
+        }
+    }
+
+    public createFolder(jobPath: string, displayName: string, description: string) {
+        let template = fs.readFileSync(path.join('jenkins_templates', 'folder.xml'), 'utf-8');
+        if (!displayName) {
+            let names = jobPath.split('/');
+            displayName = names[names.length - 1];
+        }
+        if (!description) {
+            description = jobPath;
+        }
+
+        template = template.replace(/%displayName%/g, displayName);
+        template = template.replace(/%description%/g, description);
+        try {
+            this.execute('create-job ' + jobPath, template);
+        } catch (exception) {
+            this.execute('create-job ' + jobPath, template);
+        }
+    }
+
+    public deleteFolder(jobPath: string) {
+        this.deleteJob(jobPath);
     }
 
     public deleteJob = (jobPath: string) => {
