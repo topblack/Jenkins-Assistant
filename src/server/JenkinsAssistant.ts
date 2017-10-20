@@ -14,7 +14,7 @@ const rest = require('restler');
 
 const app = express();
 
-const RULES_DIR = 'rules';
+const DATA_DIR = 'data';
 
 enum RuleType {
     triggerOnNewCommit
@@ -109,7 +109,8 @@ export class JenkinsAssistant {
         app.get('/rules', this.handleGetRules)
             .post('/rules', this.handlePostRule)
             .get('/rules/:name', this.handleGetRule)
-            .delete('/rules/:name', this.handleDeleteRule);
+            .delete('/rules/:name', this.handleDeleteRule)
+            .get('/logs', this.handleGetLogs);
         app.use('/admin', express.static('ui'));
 
         let socket = io(this.brokerUrl);
@@ -247,16 +248,16 @@ export class JenkinsAssistant {
     }
 
     private initRules() {
-        if (!fs.existsSync(RULES_DIR)) {
-            fs.mkdirSync(RULES_DIR);
+        if (!fs.existsSync(DATA_DIR)) {
+            fs.mkdirSync(DATA_DIR);
         }
 
-        let ruleNames: string[] = fs.readdirSync(RULES_DIR);
+        let ruleNames: string[] = fs.readdirSync(DATA_DIR);
         for (let i = 0; i < ruleNames.length; i++) {
             if (ruleNames[i].indexOf('.') === 0 || ruleNames[i].indexOf('.json') < 0) {
                 continue;
             }
-            let ruleFilePath: string = path.join(RULES_DIR, ruleNames[i]);
+            let ruleFilePath: string = path.join(DATA_DIR, ruleNames[i]);
             let ruleContent = fs.readFileSync(ruleFilePath, 'utf-8');
             this.rules.push(JSON.parse(ruleContent));
         }
@@ -278,12 +279,12 @@ export class JenkinsAssistant {
         }
 
         this.rules.push(newRule);
-        fs.writeFileSync(path.join(RULES_DIR, newRule.name + '.json'), JSON.stringify(req.body));
+        fs.writeFileSync(path.join(DATA_DIR, newRule.name + '.json'), JSON.stringify(req.body));
         res.sendStatus(201);
     }
 
     private handleGetRule = (req: any, res: any) => {
-        let targetRuleFile: string = path.join(RULES_DIR, req.params.name + '.json');
+        let targetRuleFile: string = path.join(DATA_DIR, req.params.name + '.json');
         if (!fs.existsSync(targetRuleFile)) {
             res.sendStatus(404);
         } else {
@@ -293,7 +294,7 @@ export class JenkinsAssistant {
     }
 
     private handleDeleteRule = (req: any, res: any) => {
-        let targetRuleFile: string = path.join(RULES_DIR, req.params.name + '.json');
+        let targetRuleFile: string = path.join(DATA_DIR, req.params.name + '.json');
         if (fs.existsSync(targetRuleFile)) {
             fs.unlinkSync(targetRuleFile);
         }
@@ -309,5 +310,10 @@ export class JenkinsAssistant {
             this.rules.splice(idToSplice);
         }
         res.sendStatus(200);
+    }
+
+    private handleGetLogs = (req: any, res: any) => {
+        let logFilePath: string = path.join(__dirname, 'app.log');
+        res.sendFile(logFilePath);
     }
 }
