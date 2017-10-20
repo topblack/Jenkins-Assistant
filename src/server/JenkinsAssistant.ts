@@ -17,7 +17,8 @@ const app = express();
 const DATA_DIR = 'data';
 
 enum RuleType {
-    triggerOnNewCommit
+    triggerOnNewCommit,
+    triggerOnPullRequestUpdate
 }
 
 interface BranchFilter {
@@ -46,12 +47,17 @@ interface JobTriggerParameter {
     value: string;
 }
 
-interface TriggerOnNewCommitRule extends Rule {
+interface TriggerRule extends Rule {
     triggerJobs: JobTrigger[];
 }
 
 interface Event {
     repository: Repository;
+}
+
+interface User {
+    login: string;
+    url: string;
 }
 
 interface PushEvent extends Event {
@@ -72,6 +78,9 @@ interface PullRequestEvent extends Event {
 interface PullRequest {
     head: GitReference;
     base: GitReference;
+    user: User;
+    title: string;
+    html_url: string;
 }
 
 interface GitReference {
@@ -81,6 +90,7 @@ interface GitReference {
 }
 
 interface Repository {
+    name: string;
     full_name: string;
 }
 
@@ -155,7 +165,23 @@ export class JenkinsAssistant {
             return;
         }
 
-        logger.warn('Received a pull request event. But this has not been implemented');
+        let pr: PullRequest = prEvent.pull_request;
+
+        // Check if the branch mentioned in the pull request (pr) event is covered in the defined rule.
+        let matchedRules: Rule[] = this.listMatchedRules(prEvent.repository.full_name, pr.head.ref);
+        if (matchedRules.length === 0) {
+            logger.warn('No rules found for the received pull request event.');
+            return;
+        }
+
+        if (prEvent.action !== 'opened' && prEvent.action !== 'edited' && prEvent.action !== 'reopened') {
+            // Not a pull request we want to handle. We only trigger events if a pull request is opened or edited or reopened
+            return;
+        }
+
+        for (let i = 0; i < matchedRules.length; i++) {
+            this.handleTriggerOnPullRequestChangeRule(matchedRules[i] as TriggerRule, pr);
+        }
     }
 
     /**
@@ -168,15 +194,7 @@ export class JenkinsAssistant {
         }
 
         // Check if the branch mentioned in the push event is covered in the defined rule.
-        let matchedRules: Rule[] = [];
-        for (let i = 0; i < this.rules.length; i++) {
-            let rule = this.rules[i];
-            if (this.isBranchWatchedByRule(push.ref, rule)) {
-                console.info(`Found rule ${rule.name}`);
-                matchedRules.push(rule);
-            }
-        }
-
+        let matchedRules: Rule[] = this.listMatchedRules(push.repository.full_name, push.ref);
         if (matchedRules.length === 0) {
             logger.info('No rules found for the received event.');
             return;
@@ -185,26 +203,66 @@ export class JenkinsAssistant {
         // Trigger the configured jobs.
         for (let i = 0; i < matchedRules.length; i++) {
             if (!push.created && !push.deleted) {
-                if (matchedRules[i].ruleType === RuleType[RuleType.triggerOnNewCommit]) {
-                    let rule: TriggerOnNewCommitRule = matchedRules[i] as TriggerOnNewCommitRule;
-                    for (let j = 0; j < rule.triggerJobs.length; j++) {
-                        let trigger: JobTrigger = rule.triggerJobs[j];
-                        let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
-                        logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
-
-                        try {
-                            this.jenkins.buildJob(trigger.jobName, parameters);
-                        } catch (error) {
-                            logger.error(error);
-                        }
-                    }
-                }
+                this.handleTriggerOnNewCommitRule(matchedRules[i] as TriggerRule);
             } else if (push.created) {
                 // create new job
             } else if (push.deleted) {
                 // delete a job
             } else {
                 // empty
+            }
+        }
+    }
+
+    private listMatchedRules(repoFullName: string, branchName: string) {
+        let matchedRules: Rule[] = [];
+        for (let i = 0; i < this.rules.length; i++) {
+            let rule = this.rules[i];
+            if (this.isBranchWatchedByRule(repoFullName, branchName, rule)) {
+                matchedRules.push(rule);
+            }
+        }
+
+        return matchedRules;
+    }
+
+    private handleTriggerOnPullRequestChangeRule = (rule: TriggerRule, pr: PullRequest) => {
+        if (!rule || (rule.ruleType !== RuleType[RuleType.triggerOnPullRequestUpdate])) {
+            logger.warn(`Cannot handle the rule, a trigger on pull request rule is expected.`);
+            return;
+        }
+
+        for (let i = 0; i < rule.triggerJobs.length; i++) {
+            let trigger: JobTrigger = rule.triggerJobs[i];
+            let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
+            parameters.push(`branch-${pr.head.repo.name}=${pr.head.ref}`);
+            parameters.push(`buildName=${pr.user.login}`);
+            parameters.push(`buildDescription="[PR@${pr.head.repo.name}](${pr.html_url})"`);
+
+            try {
+                logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
+                this.jenkins.buildJob(trigger.jobName, parameters);
+            } catch (error) {
+                logger.error(error);
+            }
+        }
+    }
+
+    private handleTriggerOnNewCommitRule = (rule: TriggerRule) => {
+        if (!rule || (rule.ruleType !== RuleType[RuleType.triggerOnNewCommit])) {
+            logger.warn(`Cannot handle the rule, a trigger rule is expected.`);
+            return;
+        }
+
+        for (let i = 0; i < rule.triggerJobs.length; i++) {
+            let trigger: JobTrigger = rule.triggerJobs[i];
+            let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
+            logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
+
+            try {
+                this.jenkins.buildJob(trigger.jobName, parameters);
+            } catch (error) {
+                logger.error(error);
             }
         }
     }
@@ -229,10 +287,15 @@ export class JenkinsAssistant {
     /**
      * Returns false if the branch is excluded (higher priority), returns true if the branch is included.
      */
-    private isBranchWatchedByRule = (branchName: string, rule: Rule): boolean => {
+    private isBranchWatchedByRule = (repoName: string, branchName: string, rule: Rule): boolean => {
         let found = false;
         for (let b = 0; b < rule.branchesToWatch.length; b++) {
             let rb = rule.branchesToWatch[b];
+
+            if (rb.repository !== repoName) {
+                continue;
+            }
+
             for (let be = 0; be < rb.branches.excludes.length; be++) {
                 if (branchName === rb.branches.excludes[be]) {
                     return false;
