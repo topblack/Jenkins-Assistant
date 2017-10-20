@@ -93,13 +93,13 @@ export class JenkinsAssistant {
 
     private brokerUrl: string;
 
-    constructor() {
+    constructor(testMode?: boolean) {
         this.initRules();
 
         let token = 'qinll:d8f07b93412618d4bf87d905cceb3d8c';
         let url = 'http://chemjenkins.perkinelmer.net:8080';
 
-        this.jenkins = new JenkinsCLI(url, token);
+        this.jenkins = new JenkinsCLI(url, token, testMode);
         this.adminEmail = 'leon.qin@perkinelmer.com';
         this.brokerUrl = 'http://shdev.scienceaccelerated.com:8080/chemjenkins';
     }
@@ -110,7 +110,8 @@ export class JenkinsAssistant {
             .post('/rules', this.handlePostRule)
             .get('/rules/:name', this.handleGetRule)
             .delete('/rules/:name', this.handleDeleteRule)
-            .get('/logs', this.handleGetLogs);
+            .get('/logs', this.handleGetTodayLogs)
+            .get('/logs/:date', this.handleGetLogs);
         app.use('/admin', express.static('ui'));
 
         let socket = io(this.brokerUrl);
@@ -312,8 +313,27 @@ export class JenkinsAssistant {
         res.sendStatus(200);
     }
 
+    private handleGetTodayLogs = (req: any, res: any) => {
+        let now: Date = new Date();
+        let dateText: string = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+        let logs: string = this.loadLogsInHtml(dateText);
+
+        res.send(logs);
+    }
+
     private handleGetLogs = (req: any, res: any) => {
-        let logFilePath: string = path.join(__dirname, 'app.log');
-        res.sendFile(logFilePath);
+        let logs: string = this.loadLogsInHtml(req.params.date);
+
+        res.send(logs);
+    }
+
+    private loadLogsInHtml = (date: string) => {
+        let targetRuleFile: string = path.join(DATA_DIR, `app.log.${date}`);
+
+        if (fs.existsSync(targetRuleFile)) {
+            return fs.readFileSync(targetRuleFile, 'utf-8').replace(/\n/g, '<br/>');
+        }
+
+        return 'None';
     }
 }

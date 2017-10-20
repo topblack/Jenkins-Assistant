@@ -3,6 +3,8 @@ const fs = require('fs');
 const http = require('http');
 const path = require('path');
 
+import { logger } from './Logger';
+
 export interface JobParameter {
     name: string;
     value: string;
@@ -13,9 +15,12 @@ export class JenkinsCLI {
 
     private auth: string;
 
-    constructor (jenkinsUrl: string, authToken: string) {
+    private testMode: boolean;
+
+    constructor (jenkinsUrl: string, authToken: string, testMode?: boolean) {
         this.url = jenkinsUrl;
         this.auth = authToken;
+        this.testMode = testMode;
     }
 
     public help = () => {
@@ -84,7 +89,11 @@ export class JenkinsCLI {
 
     private execute = (jenkinsCmd: string, inputText?: string) => {
         let command = 'java -jar jenkins-cli.jar -s ' + this.url + ' -auth ' + this.auth + ' ' + jenkinsCmd;
-        console.info(command);
+        logger.info(command);
+
+        if (this.testMode) {
+            return command;
+        }
 
         let output = exec(command, { input: inputText, encoding: 'utf-8' });
 

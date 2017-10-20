@@ -22,6 +22,7 @@ if (process.env.JENKINS_ASSISTANT_PORT) {
 
 if (mode === Mode.Test) {
     console.info('Test mode');
+    new JenkinsAssistant(true).serve(port);
 } else if (mode === Mode.JenkinsAssistant) {
     new JenkinsAssistant().serve(port);
 } else if (mode === Mode.EventBroker) {
