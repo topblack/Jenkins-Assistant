@@ -1,12 +1,24 @@
 import { logger } from '../Logger';
-import { GitHubAPI, Branch, UserProfile } from '../GitHubAPI';
+import * as github from '../GitHubAPI';
 
 
 let user: string = 'topblack';
-let token: string = 'c1264e78e5e3b21dc92b47102bd135367200edd5';
+let token: string = '7cb8e85fe3fa90c235556632b902e190f0818a50 ';
 
-let gitHub: GitHubAPI = new GitHubAPI(user, token);
+let gitHub: github.GitHubAPI = new github.GitHubAPI(user, token);
 
+let ps: Promise<github.UserProfile>[] = [];
+
+ps.push(gitHub.getUserProfile('lqin-pki'));
+ps.push(gitHub.getUserProfile('topblack'));
+ps.push(gitHub.getUserProfile('chemjenkins-pki'));
+
+Promise.all(ps).then((results) => {
+    for (let profile of results) {
+        console.info(profile.email);
+    }
+})
+/*
 gitHub.findBranch('topblack', 'Jenkins-Assistant', 'develop').then((result: string) => {
     logger.info(result);
 }).catch((error: any) => {
@@ -21,3 +33,8 @@ gitHub.getUserProfile('lqin-pki').then((profile: UserProfile) => {
 gitHub.getUserProfile('topblack').then((profile: UserProfile) => {
     logger.info(profile.email);
 });
+
+gitHub.getUserProfile('chemjenkins-pki').then((profile: UserProfile) => {
+    logger.info(profile.email);
+});
+*/

@@ -2,13 +2,38 @@ const GitHub = require('github-api');
 
 import { logger } from './Logger';
 
-interface Repo {
+interface Event {
+    repository: Repo;
+}
+
+export interface PushEvent extends Event {
+    ref: string;
+    created: boolean;
+    deleted: boolean;
+}
+
+export interface PullRequestEvent extends Event {
+    /**
+     * Can be one of "assigned", "unassigned", "review_requested", "review_request_removed",
+     * "labeled", "unlabeled", "opened", "edited", "closed", or "reopened".
+     */
+    action: string;
+    pull_request: PullRequest;
+}
+
+export interface Repo {
+    owner: User;
     name: string;
     full_name: string;
     default_branch: string;
 }
 
 interface User {
+    login: string;
+    url: string;
+}
+
+interface CommitUser {
     name: string;
     date: string;
     email: string;
@@ -26,8 +51,8 @@ interface BranchCommit {
 }
 
 interface Commit {
-    author: User;
-    committer: User;
+    author: CommitUser;
+    committer: CommitUser;
     message: string;
 }
 
@@ -40,11 +65,28 @@ interface FulfilledHttpRequest {
     data: any;
 }
 
+interface GitReference {
+    ref: string;
+    sha: string;
+    repo: Repo;
+}
+
+export interface PullRequest {
+    head: GitReference;
+    base: GitReference;
+    user: User;
+    title: string;
+    html_url: string;
+}
+
 export interface Branch {
     name: string;
     commit: BranchCommit;
 }
 
+/**
+ * Refer to the API docs at http://github-tools.github.io/github/
+ */
 export class GitHubAPI {
     private github: any;
 
@@ -100,5 +142,17 @@ export class GitHubAPI {
                 let profile: UserProfile = result.data as UserProfile;
                 return profile;
             });
+    }
+
+    public getPullRequest = (ownerName: string, repoName: string, pullNumber: number) => {
+        logger.info(`Getting pull request ${ownerName}/${repoName}/pulls/${pullNumber}...`);
+        let repo = this.github.getRepo(ownerName, repoName);
+
+        return repo.getPullRequest(pullNumber);
+    }
+
+    public test = (repoNames: string[], pullRequest: PullRequest) => {
+        // Get repo & branches
+        // Get notifiers
     }
 }

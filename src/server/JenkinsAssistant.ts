@@ -4,6 +4,7 @@ import { JenkinsCLI } from './JenkinsCLI';
 import { scheduler } from './Scheduler';
 import { ServiceStatusReportJob } from './jd/ServiceStatusReportJob';
 import { logger } from './Logger';
+import * as github from './GitHubAPI';
 
 const fs = require('fs');
 const path = require('path');
@@ -49,49 +50,6 @@ interface JobTriggerParameter {
 
 interface TriggerRule extends Rule {
     triggerJobs: JobTrigger[];
-}
-
-interface Event {
-    repository: Repository;
-}
-
-interface User {
-    login: string;
-    url: string;
-}
-
-interface PushEvent extends Event {
-    ref: string;
-    created: boolean;
-    deleted: boolean;
-}
-
-interface PullRequestEvent extends Event {
-    /**
-     * Can be one of "assigned", "unassigned", "review_requested", "review_request_removed",
-     * "labeled", "unlabeled", "opened", "edited", "closed", or "reopened".
-     */
-    action: string;
-    pull_request: PullRequest;
-}
-
-interface PullRequest {
-    head: GitReference;
-    base: GitReference;
-    user: User;
-    title: string;
-    html_url: string;
-}
-
-interface GitReference {
-    ref: string;
-    sha: string;
-    repo: Repository;
-}
-
-interface Repository {
-    name: string;
-    full_name: string;
 }
 
 export class JenkinsAssistant {
@@ -159,13 +117,13 @@ export class JenkinsAssistant {
         //scheduler.schedule(new ServiceStatusReportJob('leon.qin@perkinelmer.com', '* 7,19 * * *'));
     }
 
-    private handlePullRequestEvent = (prEvent: PullRequestEvent) => {
+    private handlePullRequestEvent = (prEvent: github.PullRequestEvent) => {
         if (!prEvent) {
             logger.warn('Not a pull request event');
             return;
         }
 
-        let pr: PullRequest = prEvent.pull_request;
+        let pr: github.PullRequest = prEvent.pull_request;
 
         // Check if the branch mentioned in the pull request (pr) event is covered in the defined rule.
         let matchedRules: Rule[] = this.listMatchedRules(prEvent.repository.full_name, pr.head.ref);
@@ -187,7 +145,7 @@ export class JenkinsAssistant {
     /**
      * Handles the push event.
      */
-    private handlePushEvent = (push: PushEvent) => {
+    private handlePushEvent = (push: github.PushEvent) => {
         if (!push) {
             logger.warn('Not a push event');
             return;
@@ -226,7 +184,7 @@ export class JenkinsAssistant {
         return matchedRules;
     }
 
-    private handleTriggerOnPullRequestChangeRule = (rule: TriggerRule, pr: PullRequest) => {
+    private handleTriggerOnPullRequestChangeRule = (rule: TriggerRule, pr: github.PullRequest) => {
         if (!rule || (rule.ruleType !== RuleType[RuleType.triggerOnPullRequestUpdate])) {
             logger.warn(`Cannot handle the rule, a trigger on pull request rule is expected.`);
             return;
