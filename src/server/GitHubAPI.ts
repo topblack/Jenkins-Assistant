@@ -79,6 +79,11 @@ export interface PullRequest {
     html_url: string;
 }
 
+export interface EnrichedPullRequest extends PullRequest {
+    requestorEmail: string;
+    relatedBranches: [{ownerName: string; repoName: string; branchName: string}];
+}
+
 export interface Branch {
     name: string;
     commit: BranchCommit;
@@ -151,8 +156,17 @@ export class GitHubAPI {
         return repo.getPullRequest(pullNumber);
     }
 
-    public test = (repoNames: string[], pullRequest: PullRequest) => {
+    public test = (repoNames: [{ownerName: string, repoName: string}], pullRequest: PullRequest) => {
         // Get repo & branches
         // Get notifiers
+        
+    }
+
+    private fillPullRequestWithUserEmail = (pullRequest: EnrichedPullRequest) => {
+
+    }
+
+    private fillPullRequestWithRelatedBranches = (pullRequest: EnrichedPullRequest) => {
+
     }
 }
