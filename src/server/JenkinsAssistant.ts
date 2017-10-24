@@ -230,7 +230,7 @@ export class JenkinsAssistant {
             let rb = triggerInfo.repoBranch;
             parameters.push(`buildNamePrefix=${triggerInfo.requestor.login}`);
             parameters.push(`pullRequestUrl=${triggerInfo.pullRequestHtmlUrl}`);
-            parameters.push(`pullRequestRef=${triggerInfo.hash}@${rb.branchName}@${rb.repoName}@${rb.ownerName})`);
+            parameters.push(`pullRequestRef=${triggerInfo.hash}@${rb.branchName}@${rb.repoName}@${rb.ownerName}`);
 
             if (triggerInfo.requestor.email) {
                 parameters.push(`notifyList=${triggerInfo.requestor.email}`);
