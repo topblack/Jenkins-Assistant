@@ -126,6 +126,7 @@ export class JenkinsAssistant {
 
         if (prEvent.action !== 'opened' && prEvent.action !== 'edited' && prEvent.action !== 'reopened') {
             // Not a pull request we want to handle. We only trigger events if a pull request is opened or edited or reopened
+            logger.info(`Ignored pull request, because of action ${prEvent.action}`);
             return;
         }
 
