@@ -124,17 +124,17 @@ export class JenkinsAssistant {
             return;
         }
 
+        if (prEvent.action !== 'opened' && prEvent.action !== 'edited' && prEvent.action !== 'reopened') {
+            // Not a pull request we want to handle. We only trigger events if a pull request is opened or edited or reopened
+            return;
+        }
+
         let pr: github.PullRequest = prEvent.pull_request;
 
         // Check if the branch mentioned in the pull request (pr) event is covered in the defined rule.
         let matchedRules: Rule[] = this.listMatchedRules(prEvent.repository.full_name, pr.head.ref);
         if (matchedRules.length === 0) {
             logger.warn('No rules found for the received pull request event.');
-            return;
-        }
-
-        if (prEvent.action !== 'opened' && prEvent.action !== 'edited' && prEvent.action !== 'reopened') {
-            // Not a pull request we want to handle. We only trigger events if a pull request is opened or edited or reopened
             return;
         }
 
