@@ -227,8 +227,10 @@ export class JenkinsAssistant {
                 parameters.push(`branch-${branch.repoName}=${branch.branchName}`);
             }
 
-            parameters.push(`buildName=${triggerInfo.requestor.login}`);
-            parameters.push(`buildDescription=Triggered by ${triggerInfo.requestor.name} @ [Pull Request](${triggerInfo.pullRequestHtmlUrl})`);
+            let rb = triggerInfo.repoBranch;
+            parameters.push(`buildNamePrefix=${triggerInfo.requestor.login}`);
+            parameters.push(`pullRequestUrl=${triggerInfo.pullRequestHtmlUrl}`);
+            parameters.push(`pullRequestRef=${triggerInfo.hash}@${rb.branchName}@${rb.repoName}@${rb.ownerName})`);
 
             if (triggerInfo.requestor.email) {
                 parameters.push(`notifyList=${triggerInfo.requestor.email}`);

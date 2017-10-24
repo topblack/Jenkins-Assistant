@@ -89,6 +89,8 @@ export interface PullRequestTriggerInfo {
     requestor: UserProfile;
     pullRequestHtmlUrl: string;
     relatedBranches: RepoBranch[];
+    hash: string;
+    repoBranch: RepoBranch;
 }
 
 export interface Branch {
@@ -185,7 +187,12 @@ export class GitHubAPI {
             let triggerInfo: PullRequestTriggerInfo = {
                 requestor: null,
                 relatedBranches: results,
-                pullRequestHtmlUrl: pullRequest.html_url
+                pullRequestHtmlUrl: pullRequest.html_url,
+                hash: pullRequest.head.sha,
+                repoBranch: {
+                    repoName: pullRequest.head.repo.name,
+                    ownerName: pullRequest.head.repo.owner.login,
+                    branchName: pullRequest.head.ref}
             };
             return this.getUserProfile(pullRequest.user.login).then((profile: UserProfile) => {
                 triggerInfo.requestor = profile;
