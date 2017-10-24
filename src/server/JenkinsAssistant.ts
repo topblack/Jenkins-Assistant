@@ -118,6 +118,7 @@ export class JenkinsAssistant {
     }
 
     private handlePullRequestEvent = (prEvent: github.PullRequestEvent) => {
+        logger.info('Received a pull request event.');
         if (!prEvent) {
             logger.warn('Not a pull request event');
             return;
@@ -146,6 +147,8 @@ export class JenkinsAssistant {
      * Handles the push event.
      */
     private handlePushEvent = (push: github.PushEvent) => {
+        logger.info('Received a push event.');
+
         if (!push) {
             logger.warn('Not a push event');
             return;
@@ -184,18 +187,50 @@ export class JenkinsAssistant {
         return matchedRules;
     }
 
+    /**
+     * Handles a full name of a repository. ownerName/repoName
+     */
+    private extractRepoNamesFromRules = (rule: Rule): [{ownerName: string, repoName: string}] => {
+        let result: [{ownerName: string, repoName: string}] = [] as [{ownerName: string, repoName: string}];
+
+        for (let repoBranch of rule.branchesToWatch) {
+            let repoNames: string[] = repoBranch.repository.split('/')
+            result.push({ownerName: repoNames[0], repoName: repoNames[1]});
+        }
+
+        return result;
+    }
+
     private handleTriggerOnPullRequestChangeRule = (rule: TriggerRule, pr: github.PullRequest) => {
         if (!rule || (rule.ruleType !== RuleType[RuleType.triggerOnPullRequestUpdate])) {
             logger.warn(`Cannot handle the rule, a trigger on pull request rule is expected.`);
             return;
         }
 
-        for (let i = 0; i < rule.triggerJobs.length; i++) {
-            let trigger: JobTrigger = rule.triggerJobs[i];
+        let githubApi: github.GitHubAPI = new github.GitHubAPI();
+
+        githubApi.retrieveBuildTriggerInfo(this.extractRepoNamesFromRules(rule), pr)
+            .then((triggerInfo: github.PullRequestTriggerInfo) => {
+                this.triggerBuildWithPullRequestInfo(rule.triggerJobs, triggerInfo);
+            }).catch((error: Error) => {
+                logger.error(`Error occurred when handling pull request change event. ${error}`);
+            });
+    }
+
+    private triggerBuildWithPullRequestInfo = (triggers: JobTrigger[], triggerInfo: github.PullRequestTriggerInfo) => {
+        for (let trigger of triggers) {
             let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
-            parameters.push(`branch-${pr.head.repo.name}=${pr.head.ref}`);
-            parameters.push(`buildName=${pr.user.login}`);
-            parameters.push(`buildDescription="[PR@${pr.head.repo.name}](${pr.html_url})"`);
+
+            for (let branch of triggerInfo.relatedBranches) {
+                parameters.push(`branch-${branch.repoName}=${branch.branchName}`);
+            }
+
+            parameters.push(`buildName=${triggerInfo.requestor.login}`);
+            parameters.push(`buildDescription=Triggered by ${triggerInfo.requestor.name} @ [Pull Request](${triggerInfo.pullRequestHtmlUrl})`);
+
+            if (triggerInfo.requestor.email) {
+                parameters.push(`notifyList=${triggerInfo.requestor.email}`);
+            }
 
             try {
                 logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
@@ -259,6 +294,12 @@ export class JenkinsAssistant {
                     return false;
                 }
             }
+
+            // If no includes are defined explicitly, then consider this rule as include all.
+            if (!rb.branches.includes || rb.branches.includes.length === 0) {
+                return true;
+            }
+
             for (let bi = 0; bi < rb.branches.includes.length; bi++) {
                 if (branchName === rb.branches.includes[bi]) {
                     return true;

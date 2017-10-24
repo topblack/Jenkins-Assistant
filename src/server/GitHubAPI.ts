@@ -28,6 +28,12 @@ export interface Repo {
     default_branch: string;
 }
 
+export interface RepoBranch {
+    ownerName: string;
+    repoName: string;
+    branchName: string;
+}
+
 interface User {
     login: string;
     url: string;
@@ -79,9 +85,10 @@ export interface PullRequest {
     html_url: string;
 }
 
-export interface EnrichedPullRequest extends PullRequest {
-    requestorEmail: string;
-    relatedBranches: [{ownerName: string; repoName: string; branchName: string}];
+export interface PullRequestTriggerInfo {
+    requestor: UserProfile;
+    pullRequestHtmlUrl: string;
+    relatedBranches: RepoBranch[];
 }
 
 export interface Branch {
@@ -121,7 +128,8 @@ export class GitHubAPI {
         return repo.getBranch(branchName)
             .then((result: FulfilledHttpRequest) => {
                 let branch: Branch = result.data as Branch;
-                return branch.name;
+                let repoBranch: RepoBranch = {ownerName: ownerName, repoName: repoName, branchName: branch.name};
+                return repoBranch;
             }).catch((error: Error) => {
                 return this.getDefaultBranch(ownerName, repoName);
             });
@@ -135,13 +143,15 @@ export class GitHubAPI {
         return repo.getDetails()
             .then((result: FulfilledHttpRequest) => {
                 let r: Repo = result.data as Repo;
-                return r.default_branch;
+                let repoBranch: RepoBranch = {ownerName: ownerName, repoName: repoName, branchName: r.default_branch};
+                return repoBranch;
             }).catch((error: Error) => {
                 console.error(`Unable to find the default branch, due to error ${error}`);
             });
     }
 
     public getUserProfile = (userLoginId: string) => {
+        logger.info(`Getting user profile of ${userLoginId}`);
         return this.github.getUser(userLoginId).getProfile()
             .then((result: FulfilledHttpRequest) => {
                 let profile: UserProfile = result.data as UserProfile;
@@ -153,20 +163,34 @@ export class GitHubAPI {
         logger.info(`Getting pull request ${ownerName}/${repoName}/pulls/${pullNumber}...`);
         let repo = this.github.getRepo(ownerName, repoName);
 
-        return repo.getPullRequest(pullNumber);
+        return repo.getPullRequest(pullNumber)
+            .then((result: FulfilledHttpRequest) => {
+                let pr: PullRequest = result.data as PullRequest;
+                return pr;
+            }).catch((error: Error) => {
+                console.error(`Unable to find the default branch, due to error ${error}`);
+            });
     }
 
-    public test = (repoNames: [{ownerName: string, repoName: string}], pullRequest: PullRequest) => {
+    public retrieveBuildTriggerInfo = (repoNames: [{ownerName: string, repoName: string}], pullRequest: PullRequest) => {
         // Get repo & branches
         // Get notifiers
-        
-    }
+        let ps: Promise<RepoBranch>[] = [];
 
-    private fillPullRequestWithUserEmail = (pullRequest: EnrichedPullRequest) => {
+        for (let repo of repoNames) {
+            ps.push(this.findBranch(repo.ownerName, repo.repoName, pullRequest.head.ref));
+        }
 
-    }
-
-    private fillPullRequestWithRelatedBranches = (pullRequest: EnrichedPullRequest) => {
-
+        return Promise.all(ps).then((results) => {
+            let triggerInfo: PullRequestTriggerInfo = {
+                requestor: null,
+                relatedBranches: results,
+                pullRequestHtmlUrl: pullRequest.html_url
+            };
+            return this.getUserProfile(pullRequest.user.login).then((profile: UserProfile) => {
+                triggerInfo.requestor = profile;
+                return triggerInfo;
+            })
+        })
     }
 }
