@@ -278,13 +278,10 @@ export class JenkinsAssistant {
 
         let emails: string = '';
         for (let commit of push.commits) {
-            if (!commit.author.email ||
-                commit.author.email.indexOf('@') > 0 ||
-                emails.indexOf(commit.author.email) >= 0) {
+            if (!commit.author.email || emails.indexOf(commit.author.email) >= 0) {
                 continue;
             }
             emails = ' ' + commit.author.email;
-
         }
 
         return emails.trim();
