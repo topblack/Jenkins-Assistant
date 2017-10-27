@@ -10,6 +10,7 @@ export interface PushEvent extends Event {
     ref: string;
     created: boolean;
     deleted: boolean;
+    commits: Commit[];
 }
 
 export interface PullRequestEvent extends Event {
@@ -41,7 +42,6 @@ interface User {
 
 interface CommitUser {
     name: string;
-    date: string;
     email: string;
 }
 

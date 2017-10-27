@@ -16,6 +16,7 @@ const rest = require('restler');
 const app = express();
 
 const DATA_DIR = 'data';
+const JENKINS_PARAM_NOTIFY_LIST = 'notifyList';
 
 enum RuleType {
     triggerOnNewCommit,
@@ -166,7 +167,7 @@ export class JenkinsAssistant {
         // Trigger the configured jobs.
         for (let i = 0; i < matchedRules.length; i++) {
             if (!push.created && !push.deleted) {
-                this.handleTriggerOnNewCommitRule(matchedRules[i] as TriggerRule);
+                this.handleTriggerOnNewCommitRule(matchedRules[i] as TriggerRule, push);
             } else if (push.created) {
                 // create new job
             } else if (push.deleted) {
@@ -233,7 +234,7 @@ export class JenkinsAssistant {
             parameters.push(`pullRequestRef=${triggerInfo.hash}@${rb.branchName}@${rb.repoName}@${rb.ownerName}`);
 
             if (triggerInfo.requestor.email) {
-                parameters.push(`notifyList=${triggerInfo.requestor.email}`);
+                parameters.push(`${JENKINS_PARAM_NOTIFY_LIST}=${triggerInfo.requestor.email}`);
             }
 
             try {
@@ -245,7 +246,7 @@ export class JenkinsAssistant {
         }
     }
 
-    private handleTriggerOnNewCommitRule = (rule: TriggerRule) => {
+    private handleTriggerOnNewCommitRule = (rule: TriggerRule, push: github.PushEvent) => {
         if (!rule || (rule.ruleType !== RuleType[RuleType.triggerOnNewCommit])) {
             logger.warn(`Cannot handle the rule, a trigger rule is expected.`);
             return;
@@ -254,6 +255,12 @@ export class JenkinsAssistant {
         for (let i = 0; i < rule.triggerJobs.length; i++) {
             let trigger: JobTrigger = rule.triggerJobs[i];
             let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
+            let emails = this.getRelatedAuthorEmailsFromPush(push);
+
+            if (emails.length > 0) {
+                parameters.push(`${JENKINS_PARAM_NOTIFY_LIST}=${emails}`);
+            }
+
             logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
 
             try {
@@ -262,6 +269,25 @@ export class JenkinsAssistant {
                 logger.error(error);
             }
         }
+    }
+
+    private getRelatedAuthorEmailsFromPush = (push: github.PushEvent): string => {
+        if (!push.commits) {
+            return '';
+        }
+
+        let emails: string = '';
+        for (let commit of push.commits) {
+            if (!commit.author.email ||
+                commit.author.email.indexOf('@') > 0 ||
+                emails.indexOf(commit.author.email) >= 0) {
+                continue;
+            }
+            emails = ' ' + commit.author.email;
+
+        }
+
+        return emails.trim();
     }
 
     /**
