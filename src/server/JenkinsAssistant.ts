@@ -65,12 +65,12 @@ export class JenkinsAssistant {
     constructor(testMode?: boolean) {
         this.initRules();
 
-        let token = 'qinll:d8f07b93412618d4bf87d905cceb3d8c';
-        let url = 'http://chemjenkins.perkinelmer.net:8080';
+        let token = process.env.JENKINS_TOKEN;
+        let url = process.env.JENKINS_URL;
 
         this.jenkins = new JenkinsCLI(url, token, testMode);
-        this.adminEmail = 'leon.qin@perkinelmer.com';
-        this.brokerUrl = 'http://shdev.scienceaccelerated.com:8080/chemjenkins';
+        this.adminEmail = process.env.ADMIN_EMAIL;
+        this.brokerUrl = process.env.GITHUB_BROKER_URL;
     }
 
     private listenToAdmin(port: number) {
