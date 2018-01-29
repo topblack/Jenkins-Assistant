@@ -254,11 +254,14 @@ export class JenkinsAssistant {
         for (let i = 0; i < rule.triggerJobs.length; i++) {
             let trigger: JobTrigger = rule.triggerJobs[i];
             let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
+
+            /*
             let emails = this.getRelatedAuthorEmailsFromPush(push);
 
             if (emails.length > 0) {
                 parameters.push(`${JENKINS_PARAM_NOTIFY_LIST}=${emails}`);
             }
+            */
 
             logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
 
