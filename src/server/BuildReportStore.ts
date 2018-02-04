@@ -29,8 +29,8 @@ class BuildUrl {
 export class BuildReportStore {
     private name: string;
 
-    constructor(name: string) {
-        this.name = name;
+    constructor(storeName: string) {
+        this.name = storeName;
     }
 
     public add = (report: BuildReport) => {
@@ -40,11 +40,12 @@ export class BuildReportStore {
             this.mkDirByPathSync(jobPath);
         }
 
-        let buildFile = path.join('builds', name, jobPath, `${buildUrl.buildId}`);
+        let buildFile = path.join('builds', this.name, jobPath, `${buildUrl.buildId}`);
         fs.writeFileSync(buildFile, JSON.stringify(buildUrl));
     }
 
-    private mkDirByPathSync(targetDir: string, isRelativeToScript: boolean?) {
+    private mkDirByPathSync(targetDir: string, isRelativeToScript?: boolean) {
+        targetDir = targetDir.replace(/\//g, path.sep);
         const sep = path.sep;
         const initDir = path.isAbsolute(targetDir) ? sep : '';
         const baseDir = isRelativeToScript ? __dirname : '.';
