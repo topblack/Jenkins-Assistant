@@ -42,7 +42,7 @@ export class BuildReportStore {
         }
 
         let buildFile = path.join(jobPath, `${buildUrl.buildId}`);
-        fs.writeFileSync(buildFile, JSON.stringify(buildUrl));
+        fs.writeFileSync(buildFile, JSON.stringify(report));
     }
 
     private mkDirByPathSync(targetDir: string, isRelativeToScript?: boolean) {
