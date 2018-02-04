@@ -96,6 +96,7 @@ export class EventBroker {
 
         app.post('/consumers/:consumerId/buildreports', (req: any, res: any) => {
             this.buildResultStore.add(req.body);
+            res.sendStatus(201);
         });
 
         app.post('/consumers/:consumerId/events', (req: any, res: any) => {
