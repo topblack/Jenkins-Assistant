@@ -8,6 +8,8 @@ const io = require('socket.io')(server);
 
 import { logger } from './Logger';
 
+import { BuildReportStore, BuildReport } from './BuildReportStore';
+
 let consumerNames: string[] = [
     'chemjenkins'
 ];
@@ -53,6 +55,8 @@ class ClientSpace {
 export class EventBroker {
     private clientSpaces: [ClientSpace] = [] as [ClientSpace];
 
+    private buildResultStore: BuildReportStore = new BuildReportStore();
+
     private pushEvent(consumerName: string, evtType: string, event: any) {
         let emitted = false;
         for (let client of this.clientSpaces) {
@@ -88,6 +92,10 @@ export class EventBroker {
             }
             result += '</body></html>';
             res.send(result);
+        });
+
+        app.post('/consumers/:consumerId/buildreports', (req: any, res: any) => {
+            this.buildResultStore.add(req.body);
         });
 
         app.post('/consumers/:consumerId/events', (req: any, res: any) => {
