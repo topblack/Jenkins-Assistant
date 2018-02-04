@@ -40,7 +40,7 @@ export class BuildReportStore {
             this.mkDirByPathSync(jobPath);
         }
 
-        let buildFile = path.join('builds', name, jobPath, buildUrl.buildId);
+        let buildFile = path.join('builds', name, jobPath, `${buildUrl.buildId}`);
         fs.writeFileSync(buildFile, JSON.stringify(buildUrl));
     }
 
