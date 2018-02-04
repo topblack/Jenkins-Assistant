@@ -36,11 +36,12 @@ export class BuildReportStore {
     public add = (report: BuildReport) => {
         let buildUrl = new BuildUrl(report.buildUrl);
         let jobPath = buildUrl.jobUrl.replace(/job\//g, '');
+        jobpath = path.join('builds', this.name, jobPath);
         if (!fs.existsSync(jobPath)) {
             this.mkDirByPathSync(jobPath);
         }
 
-        let buildFile = path.join('builds', this.name, jobPath, `${buildUrl.buildId}`);
+        let buildFile = path.join(jobpath, `${buildUrl.buildId}`);
         fs.writeFileSync(buildFile, JSON.stringify(buildUrl));
     }
 
