@@ -3,7 +3,7 @@ const io = require('socket.io-client');
 import { JenkinsCLI } from './JenkinsCLI';
 import { scheduler } from './Scheduler';
 import { ServiceStatusReportJob } from './jd/ServiceStatusReportJob';
-import { logger } from './Logger';
+import { logger, LOG_DIR } from './Logger';
 import * as github from './GitHubAPI';
 
 const fs = require('fs');
@@ -419,7 +419,7 @@ export class JenkinsAssistant {
     }
 
     private loadLogsInHtml = (date: string) => {
-        let targetRuleFile: string = path.join(DATA_DIR, `app.log.${date}`);
+        let targetRuleFile: string = path.join(LOG_DIR, `app.log.${date}`);
 
         if (fs.existsSync(targetRuleFile)) {
             return fs.readFileSync(targetRuleFile, 'utf-8').replace(/\n/g, '<br/>');
