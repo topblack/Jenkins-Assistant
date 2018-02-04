@@ -55,7 +55,7 @@ class ClientSpace {
 export class EventBroker {
     private clientSpaces: [ClientSpace] = [] as [ClientSpace];
 
-    private buildResultStore: BuildReportStore = new BuildReportStore();
+    private buildResultStore: BuildReportStore = new BuildReportStore('chemjenkins');
 
     private pushEvent(consumerName: string, evtType: string, event: any) {
         let emitted = false;
