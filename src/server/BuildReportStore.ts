@@ -27,6 +27,12 @@ class BuildUrl {
 }
 
 export class BuildReportStore {
+    private name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
+
     public add = (report: BuildReport) => {
         let buildUrl = new BuildUrl(report.buildUrl);
         let jobPath = buildUrl.jobUrl.replace(/job\//g, '');
@@ -34,7 +40,7 @@ export class BuildReportStore {
             fs.mkdirSync(jobPath);
         }
 
-        let buildFile = path.join(jobPath, buildUrl.buildId);
+        let buildFile = path.join('builds', name, jobPath, buildUrl.buildId);
         fs.writeFileSync(buildFile, JSON.stringify(buildUrl));
     }
 }
