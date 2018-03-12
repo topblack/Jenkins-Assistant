@@ -62,6 +62,8 @@ export class JenkinsAssistant {
 
     private brokerUrl: string;
 
+    private maxRetryAttempts: number;
+
     constructor(testMode?: boolean) {
         this.initRules();
 
@@ -71,6 +73,7 @@ export class JenkinsAssistant {
         this.jenkins = new JenkinsCLI(url, token, testMode);
         this.adminEmail = process.env.ADMIN_EMAIL;
         this.brokerUrl = process.env.GITHUB_BROKER_URL;
+        this.maxRetryAttempts = 3;
     }
 
     private listenToAdmin(port: number) {
@@ -236,11 +239,23 @@ export class JenkinsAssistant {
                 parameters.push(`${JENKINS_PARAM_NOTIFY_LIST}=${triggerInfo.requestor.email}`);
             }
 
-            try {
-                logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
-                this.jenkins.buildJob(trigger.jobName, parameters);
-            } catch (error) {
-                logger.error(error);
+            let attempt = 1;
+            let needRetry = false;
+
+            while (attempt === 1 || needRetry) {
+                logger.info(`Triggering job (attempt: ${attempt}) ${trigger.jobName} ${parameters}`);
+                try {
+                    needRetry = false;
+                    this.jenkins.buildJob(trigger.jobName, parameters);
+                } catch (error) {
+                    logger.error(error);
+                    needRetry = true;
+                } finally {
+                    attempt++;
+                    if (attempt > this.maxRetryAttempts) {
+                        needRetry = false;
+                    }
+                }
             }
         }
     }
@@ -263,12 +278,23 @@ export class JenkinsAssistant {
             }
             */
 
-            logger.info(`Triggering job ${trigger.jobName} ${parameters}`);
+            let attempt = 1;
+            let needRetry = false;
 
-            try {
-                this.jenkins.buildJob(trigger.jobName, parameters);
-            } catch (error) {
-                logger.error(error);
+            while (attempt === 1 || needRetry) {
+                logger.info(`Triggering job (attempt: ${attempt}) ${trigger.jobName} ${parameters}`);
+                try {
+                    needRetry = false;
+                    this.jenkins.buildJob(trigger.jobName, parameters);
+                } catch (error) {
+                    logger.error(error);
+                    needRetry = true;
+                } finally {
+                    attempt++;
+                    if (attempt > this.maxRetryAttempts) {
+                        needRetry = false;
+                    }
+                }
             }
         }
     }
