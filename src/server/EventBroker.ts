@@ -95,6 +95,7 @@ export class EventBroker {
         });
 
         app.post('/consumers/:consumerId/buildreports', (req: any, res: any) => {
+            logger.info('Received build report: '  + req.body);
             this.buildResultStore.add(req.body);
             res.sendStatus(201);
         });
