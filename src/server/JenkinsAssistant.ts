@@ -16,7 +16,6 @@ const rest = require('restler');
 const app = express();
 
 const DATA_DIR = 'data';
-const JENKINS_PARAM_NOTIFY_LIST = 'notifyList';
 
 enum RuleType {
     triggerOnNewCommit,
@@ -42,6 +41,12 @@ interface Rule {
 interface JobTrigger {
     jobName: string;
     parameters: JobTriggerParameter[];
+    options: JobTriggerOption;
+}
+
+interface JobTriggerOption {
+    setCommitAuthor: string;
+    setCommitBranch: string;
 }
 
 interface JobTriggerParameter {
@@ -235,8 +240,13 @@ export class JenkinsAssistant {
             parameters.push(`pullRequestUrl=${triggerInfo.pullRequestHtmlUrl}`);
             parameters.push(`pullRequestRef=${triggerInfo.hash}@${rb.branchName}@${rb.repoName}@${rb.ownerName}`);
 
-            if (triggerInfo.requestor.email) {
-                parameters.push(`${JENKINS_PARAM_NOTIFY_LIST}=${triggerInfo.requestor.email}`);
+
+            if (trigger.options.setCommitAuthor && trigger.options.setCommitAuthor.length > 0) {
+                let emails = triggerInfo.requestor.email;
+
+                if (emails.length > 0) {
+                    parameters.push(`${trigger.options.setCommitAuthor}=${emails}`);
+                }
             }
 
             let attempt = 1;
@@ -270,13 +280,17 @@ export class JenkinsAssistant {
             let trigger: JobTrigger = rule.triggerJobs[i];
             let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
 
-            /*
-            let emails = this.getRelatedAuthorEmailsFromPush(push);
+            if (trigger.options.setCommitAuthor && trigger.options.setCommitAuthor.length > 0) {
+                let emails = this.getRelatedAuthorEmailsFromPush(push);
 
-            if (emails.length > 0) {
-                parameters.push(`${JENKINS_PARAM_NOTIFY_LIST}=${emails}`);
+                if (emails.length > 0) {
+                    parameters.push(`${trigger.options.setCommitAuthor}=${emails}`);
+                }
             }
-            */
+
+            if (trigger.options.setCommitBranch && trigger.options.setCommitBranch.length > 0) {
+                parameters.push(`${trigger.options.setCommitBranch}=${push.ref}`);
+            }
 
             let attempt = 1;
             let needRetry = false;

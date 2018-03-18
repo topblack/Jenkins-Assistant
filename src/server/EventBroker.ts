@@ -61,7 +61,7 @@ export class EventBroker {
         let emitted = false;
         for (let client of this.clientSpaces) {
             if (client.name === consumerName) {
-                logger.info('Pusing events to ' + consumerName);
+                logger.info('Pushing events to ' + consumerName);
                 client.nsp.emit(evtType, event);
                 emitted = true;
                 break;
@@ -95,7 +95,7 @@ export class EventBroker {
         });
 
         app.post('/consumers/:consumerId/buildreports', (req: any, res: any) => {
-            logger.info('Received build report: '  + req.body);
+            logger.info('Received build report: '  + JSON.stringify(req.body));
             this.buildResultStore.add(req.body);
             res.sendStatus(201);
         });
