@@ -241,10 +241,12 @@ export class JenkinsAssistant {
             parameters.push(`pullRequestRef=${triggerInfo.hash}@${rb.branchName}@${rb.repoName}@${rb.ownerName}`);
 
 
-            if (trigger.options.setCommitAuthor && trigger.options.setCommitAuthor.length > 0) {
+            if (trigger.options &&
+                trigger.options.setCommitAuthor &&
+                trigger.options.setCommitAuthor.length > 0) {
                 let emails = triggerInfo.requestor.email;
 
-                if (emails.length > 0) {
+                if (emails && emails.length > 0) {
                     parameters.push(`${trigger.options.setCommitAuthor}=${emails}`);
                 }
             }
@@ -280,15 +282,17 @@ export class JenkinsAssistant {
             let trigger: JobTrigger = rule.triggerJobs[i];
             let parameters: string[] = this.composeTriggerParameters(trigger.parameters);
 
-            if (trigger.options.setCommitAuthor && trigger.options.setCommitAuthor.length > 0) {
+            if (trigger.options && trigger.options.setCommitAuthor
+                && trigger.options.setCommitAuthor.length > 0) {
                 let emails = this.getRelatedAuthorEmailsFromPush(push);
 
-                if (emails.length > 0) {
+                if (emails && emails.length > 0) {
                     parameters.push(`${trigger.options.setCommitAuthor}=${emails}`);
                 }
             }
 
-            if (trigger.options.setCommitBranch && trigger.options.setCommitBranch.length > 0) {
+            if (trigger.options && trigger.options.setCommitBranch
+                && trigger.options.setCommitBranch.length > 0) {
                 parameters.push(`${trigger.options.setCommitBranch}=${push.ref}`);
             }
 
