@@ -77,6 +77,16 @@ interface GitReference {
     repo: Repo;
 }
 
+interface CreateReferenceRequest {
+    ref: string;
+    sha: string;
+}
+
+interface CommitsCompareResult {
+    status: string;
+    commits: BranchCommit[];
+}
+
 export interface PullRequest {
     head: GitReference;
     base: GitReference;
@@ -174,6 +184,31 @@ export class GitHubAPI {
             });
     }
 
+    public createBranchFromCommitHash = (ownerName: string, repoName: string, commitHash: string, branchName: string) => {
+        if (!branchName.startsWith('refs/heads/')) {
+            branchName = 'refs/heads/' + branchName;
+        }
+
+        let ref: CreateReferenceRequest = {sha: commitHash, ref: branchName};
+        return this.github.getRepo(ownerName, repoName).createRef(ref);
+    }
+
+    public deleteBranch = (ownerName: string, repoName: string, branchName: string) => {
+        if (!branchName.startsWith('refs/heads/')) {
+            branchName = 'refs/heads/' + branchName;
+        }
+
+        return this.github.getRepo(ownerName, repoName).deleteRef(branchName);
+    }
+
+    public compareBranches = (ownerName: string, repoName: string, base: string, head: string) => {
+        if (!base.startsWith('refs/heads/')) {
+            base = 'refs/heads/' + base;
+        }
+
+        return this.github.getRepo(ownerName, repoName).compareBranches(base, head);
+    }
+
     public retrieveBuildTriggerInfo = (repoNames: [{ownerName: string, repoName: string}], pullRequest: PullRequest) => {
         // Get repo & branches
         // Get notifiers
@@ -200,4 +235,20 @@ export class GitHubAPI {
             })
         })
     }
+}
+
+function test() {
+    let github = new GitHubAPI('chemjenkins-pki', 'e737fa3495582416434bf84bb3c416e4a16b4eae');
+    github.compareBranches('PerkinElmer', 'ChemDraw-Desktop', 'chemjenkins/DSK/develop/last-build',
+    '7f8ffba68ff06ba5e7718ff2befce81945fca1c8').then((compareResult: any) => {
+        console.info(compareResult.data.status);
+    }).catch(err => {
+        console.error(err);
+    });
+}
+
+function test2() {
+    let github = new GitHubAPI('chemjenkins-pki', 'e737fa3495582416434bf84bb3c416e4a16b4eae');
+    return github.createBranchFromCommitHash('PerkinElmer', 'ChemDraw-Desktop',
+        '2ce404defd08c650e055eee06d7f78fafa748015', 'chemjenkins/DSK/develop/last-build');
 }

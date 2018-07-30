@@ -21,6 +21,7 @@
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
     "github-api": "^3.0.0",
+    "jenkins": "^0.22.1",
     "node-schedule": "^1.2.4",
     "nodemailer": "^4.0.1",
     "require": "^2.4.20",
