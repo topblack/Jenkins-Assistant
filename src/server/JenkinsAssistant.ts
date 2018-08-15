@@ -141,6 +141,12 @@ export class JenkinsAssistant {
 
         let pr: github.PullRequest = prEvent.pull_request;
 
+        // For now, ignore the request if the base ref of this PR is not develop
+        if (pr.base.ref !== 'develop') {
+            logger.info(`Base ref = ${pr.base.ref} . For now, ignore the request if the base ref of this PR is not develop.`);
+            return;
+        }
+
         // Check if the branch mentioned in the pull request (pr) event is covered in the defined rule.
         let matchedRules: Rule[] = this.listMatchedRules(prEvent.repository.full_name, pr.head.ref);
         if (matchedRules.length === 0) {
